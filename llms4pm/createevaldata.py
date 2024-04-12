@@ -3,8 +3,8 @@ from copy import deepcopy
 
 import pandas as pd
 
-from sadsnap.behavioral_profile import get_behavioral_profile_as_df
-from sadsnap.verifier import is_true_anomaly
+from llms4pm.behavioral_profile import get_behavioral_profile_as_df
+from llms4pm.verifier import is_true_anomaly
 from langdetect import DetectorFactory, detect, LangDetectException
 from const import DATA_ROOT
 # Set a seed for reproducibility (optional)

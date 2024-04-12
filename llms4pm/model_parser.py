@@ -7,7 +7,7 @@ from typing import List, Dict
 import pandas as pd
 from tqdm import tqdm
 
-from sadsnap.const import DATA_DATASET, BPMN2_NAMESPACE
+from llms4pm.const import DATA_DATASET, BPMN2_NAMESPACE
 
 _logger = logging.getLogger(__name__)
 

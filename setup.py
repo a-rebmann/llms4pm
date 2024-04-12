@@ -7,7 +7,7 @@ setup(
     name="sadsnap",
     packages=find_packages(),
     author='Adrian Rebmann',
-    author_email='adrianrebmann@gmmail.com',
+    author_email='adrianrebmann@gmail.com',
     version="0.0.1",
     description="long description",
     long_description=long_description,

@@ -10,8 +10,8 @@ from pm4py.algo.simulation.playout.petri_net.algorithm import Variants
 from pm4py.objects.log.obj import EventLog, Trace
 from func_timeout import func_timeout, FunctionTimedOut
 
-from sadsnap.bpmnjsonanalyzer import fromJSON
-from sadsnap.jsontopetrinetconverter import JsonToPetriNetConverter
+from llms4pm.bpmnjsonanalyzer import fromJSON
+from llms4pm.jsontopetrinetconverter import JsonToPetriNetConverter
 
 _logger = logging.getLogger(__name__)
 

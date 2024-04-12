@@ -1,5 +1,5 @@
-import sadsnap.model_parser as parser
-from sadsnap.model_to_log import Model2LogConverter
+import llms4pm.model_parser as parser
+from llms4pm.model_to_log import Model2LogConverter
 import pm4py
 import logging
 

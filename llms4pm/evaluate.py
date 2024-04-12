@@ -1,6 +1,6 @@
 import pandas as pd
 from bpmnjsonanalyzer import sanitize_label
-from sadsnap.const import DATA_RESULTS
+from llms4pm.const import DATA_RESULTS
 
 
 def preprocess_anomalies(anomalies):
@@ -56,7 +56,7 @@ GPT_MODEL = "gpt-3.5-turbo"
 LLAMA_MODEL = "meta-llama-Llama-2-7b-chat-hf"
 MISTRAL_MODEL = "mistralai-Mistral-7B-Instruct-v0.2"
 
-MODEL_ID ="examples_" + GPT_MODEL
+MODEL_ID ="examples_cot_" + GPT_MODEL
 
 DRIVE_RESULTS = "/Users/adrianrebmann/Google Drive/results/"
 
