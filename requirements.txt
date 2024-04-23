@@ -1,0 +1,12 @@
+jupyter
+pandas
+numpy
+tqdm
+pm4py
+func_timeout
+transformers
+torch
+bitsandbytes
+accelerate
+langdetect
+scikit-learn

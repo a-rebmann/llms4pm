@@ -1,5 +1,5 @@
-import llms4pm.model_parser as parser
-from llms4pm.model_to_log import Model2LogConverter
+import data as parser
+from data.model_to_log import Model2LogConverter
 import pm4py
 import logging
 

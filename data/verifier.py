@@ -1,5 +1,7 @@
 def is_missing(affected, trace, strict_order, reverse_strict_order, interleaving):
     res = False
+    if affected[0] in trace:
+        return False
     for trace_activity in trace:
         if (trace_activity, affected[0]) in strict_order\
                 or (trace_activity, affected[0]) in reverse_strict_order\
@@ -8,23 +10,27 @@ def is_missing(affected, trace, strict_order, reverse_strict_order, interleaving
     return res
 
 
-def is_superfluous(affected, trace, true_activity_relations):
+def is_superfluous(affected, trace, exclusive):
     res = False
+    if affected[0] not in trace:
+        return False
     for trace_activity in trace:
-        if (trace_activity, affected[0]) in true_activity_relations:
+        if (trace_activity, affected[0]) in exclusive:
             res = True
     return res
 
 
-def is_out_of_order(affected, true_activity_relations):
-    res = len(affected) > 1 and (affected[1], affected[0]) in true_activity_relations
+def is_out_of_order(affected, trace, strict_order):
+    if affected[0] not in trace or affected[1] not in trace:
+        return False
+    res = len(affected) > 1 and (affected[1], affected[0]) in strict_order
     return res
 
 
 def is_true_anomaly(anomaly_type, affected, trace, strict_order, reverse_strict_order, exclusive, interleaving):
     if anomaly_type == 0:
         # if event2 never follows event1 in the original model, it is a true order anomaly
-        return is_out_of_order(affected, strict_order)
+        return is_out_of_order(affected, trace, strict_order)
     if anomaly_type == 1:
         # if event1 excludes any each other event in the original model, it is a true superfluous anomaly
         return is_superfluous(affected, trace, exclusive)
