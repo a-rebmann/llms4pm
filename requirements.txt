@@ -10,3 +10,4 @@ bitsandbytes
 accelerate
 langdetect
 scikit-learn
+datasets

@@ -24,5 +24,6 @@ GEMMA_MODEL = "google/gemma-7b-it"
 
 OUT_OF_ORDER = "out_of_order"
 TRACE_ANOMALY = "trace_anomaly"
+NEXT_ACTIVITY = "next_activity"
 
-TASKS = [OUT_OF_ORDER, TRACE_ANOMALY]
+TASKS = [OUT_OF_ORDER, TRACE_ANOMALY, NEXT_ACTIVITY]

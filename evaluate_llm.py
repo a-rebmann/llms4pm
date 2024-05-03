@@ -12,23 +12,30 @@ from transformers import (
 )
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score
+from sklearn.metrics import precision_recall_fscore_support
 
 from const import MISTRAL_MODEL, EVAL_PATH, TASKS
 from llm.prompts import general_task_prompt_order, get_few_shot_prompt_pairs, general_task_prompt, \
-    get_few_shot_prompt_traces
-
+    get_few_shot_prompt_traces, get_few_shot_prompt_prefix, next_activity_prompt
 
 warnings.filterwarnings("ignore")
 tqdm.pandas()
 
 
-def split_by_model(df, test_size=0.5, random_state=4):
+def split_by_model(df, split_sizes: list[float] = [0.2, 0.1], random_state=4) -> tuple[
+    pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     df["id"] = df["model_id"].astype(str) + "_" + df["revision_id"].astype(str)
-    model_ids = df['id'].unique()
-    train_ids, test_ids = train_test_split(model_ids, test_size=test_size, random_state=random_state)
-    train_df = df[df['id'].isin(train_ids)]
-    test_df = df[df['id'].isin(test_ids)]
-    return train_df, test_df
+    model_ids = df["id"].unique()
+    train_val_ids, test_ids = train_test_split(
+        model_ids, test_size=split_sizes[-1], random_state=random_state
+    )
+    train_ids, val_ids = train_test_split(
+        train_val_ids, test_size=split_sizes[-2], random_state=random_state
+    )
+    train_df = df[df["id"].isin(train_ids)]
+    val_df = df[df["id"].isin(val_ids)]
+    test_df = df[df["id"].isin(test_ids)]
+    return train_df, val_df, test_df
 
 
 def get_model_and_tokenizer(model_name, device="cuda:1", quant_config=None):
@@ -44,10 +51,10 @@ def get_model_and_tokenizer(model_name, device="cuda:1", quant_config=None):
     return model, tokenizer
 
 
-def generate_output(model_name, device, model, tokenizer, prompt):
+def generate_binary_output(model_name, device, model, tokenizer, prompt):
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
-    #print(prompt)
+    # print(prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     outputs = model.generate(
         input_ids=inputs["input_ids"],
@@ -57,8 +64,8 @@ def generate_output(model_name, device, model, tokenizer, prompt):
         output_scores=True,
     )
     first_token_probs = outputs.scores[0][0]
-    true = tokenizer("True")["input_ids"]
-    false = tokenizer("False")["input_ids"]
+    true = tokenizer("True")["input_ids"][1]
+    false = tokenizer("False")["input_ids"][1]
     # option_scores = (
     #     first_token_probs[[true, false]].float().cpu().numpy()
     # )  # True, False
@@ -66,8 +73,36 @@ def generate_output(model_name, device, model, tokenizer, prompt):
     # pred = np.array(["True", "False"])[np.argsort(option_scores)[::-1][:1]]
     input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
     generated_tokens = outputs.sequences[:, input_length:]
-    print(tokenizer.decode(generated_tokens[0][0]), true, false)
-    return tokenizer.decode(generated_tokens[0][0])
+    decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    if "True" in decoded[0]:
+        return True
+    elif "False" in decoded[0]:
+        return False
+    print(decoded[0], "neither True nor False")
+    print(tokenizer.decode(generated_tokens[0][0]))
+    return False  # tokenizer.decode(generated_tokens[0][0])
+
+
+def generate_activity_output(model_name, device, model, tokenizer, prompt, activities):
+    if model_name == MISTRAL_MODEL:
+        prompt = "[INST]" + prompt + "[/INST]"
+    # print(prompt)
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    outputs = model.generate(
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
+        max_new_tokens=25,
+        return_dict_in_generate=True,
+        output_scores=True,
+    )
+    input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
+    generated_tokens = outputs.sequences[:, input_length:]
+    decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    for activity in activities:# + ["[END]"]:
+        if activity in decoded[0]:
+            return activity
+    print(decoded[0], "does not contain any activity")
+    return "[END]"
 
 
 def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_sizes, n_runs, train_df, val_df,
@@ -87,39 +122,73 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 this_prompt = get_few_shot_prompt(train_df, sample_size, task_prompt, input_att)
             else:
                 this_prompt = get_zero_shot_prompt(task_prompt, input_att)
-            val_df["y"] = val_df.progress_apply(lambda x: generate_output(model_name, device, model, tokenizer,
-                                                                          this_prompt +
-                                                                          str(x["unique_activities"]) + "\n" +
-                                                                          "First activity, second activity: " +
-                                                                          str(x[input_att]) + "\n"), axis=1)
-            print("Detected raw", val_df['y'].value_counts())
-            val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
-            print("Detected parsed", val_df['y'].value_counts())
             if input_att == "trace":
-                true_labels = val_df['anomalous']
-            else:
+                val_df["y"] = val_df.progress_apply(
+                    lambda x: generate_binary_output(model_name, device, model, tokenizer,
+                                                     this_prompt +
+                                                     str(x["unique_activities"]) + "\n"
+                                                     + "Trace:" + str(
+                                                         x[input_att]) + "\nValid:"),
+                    axis=1)
+            elif input_att == "eventually_follows":
+                val_df["y"] = val_df.progress_apply(
+                    lambda x: generate_binary_output(model_name, device, model, tokenizer,
+                                                     this_prompt +
+                                                     str(x["unique_activities"]) + "\n"
+                                                     + "1. Activity:" + str(x[input_att][0]) + "\n"
+                                                     + "2. Activity:" + str(
+                                                         x[input_att][1]) + "\nValid:"),
+                    axis=1)
+            elif input_att == "next":
+                val_df["y"] = val_df.progress_apply(
+                    lambda x: generate_activity_output(model_name, device, model, tokenizer,
+                                                       this_prompt +
+                                                       str(x["unique_activities"]) + "\n"
+                                                       + "Prefix of a Trace:" + str(
+                                                           x["prefix"]) + "\nPredicted Next Activity:",
+                                                       activities=list(eval(x["unique_activities"]))),
+                    axis=1)
+            print("Detected raw", val_df['y'].value_counts())
+            # val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
+            # print("Detected parsed", val_df['y'].value_counts())
+            if input_att == "trace":
                 true_labels = ~val_df['anomalous']
+            elif input_att == "eventually_follows":
+                true_labels = ~val_df['out_of_order']
+            elif input_att == "next":
+                true_labels = val_df['next']
+            else:
+                raise NotImplemented
             print("True parsed", true_labels.value_counts())
             predicted_labels = val_df['y']
-            tp = sum((true_labels == True) & (predicted_labels == True))
-            fp = sum((true_labels == False) & (predicted_labels == True))
-            fn = sum((true_labels == True) & (predicted_labels == False))
             # Compute precision, recall, and F1 score
-            precision = precision_score(true_labels, predicted_labels)
-            recall = recall_score(true_labels, predicted_labels)
-            f1 = f1_score(true_labels, predicted_labels)
-            print(f"Sample size: {sample_size}, Run: {run}, TP: {tp}, FP: {fp}, FN: {fn}, Precision: {precision}, "
-                  f"Recall: {recall}, F1: {f1}")
-            result_records.append({
+            precision_micro = precision_score(true_labels, predicted_labels, average='micro')
+            recall_micro = recall_score(true_labels, predicted_labels, average='micro')
+            f1_micro = f1_score(true_labels, predicted_labels, average='micro')
+            precision_macro = precision_score(true_labels, predicted_labels, average='macro')
+            recall_macro = recall_score(true_labels, predicted_labels, average='macro')
+            f1_macro = f1_score(true_labels, predicted_labels, average='macro')
+            rec = {
                 "sample_size": sample_size,
                 "run": run,
-                "true_positives": tp,
-                "false_positives": fp,
-                "false_negatives": fn,
-                "precision": precision,
-                "recall": recall,
-                "f1": f1
-            })
+                "precision mic": precision_micro,
+                "recall mic": recall_micro,
+                "f1 mic": f1_micro,
+                "precision mac": precision_macro,
+                "recall mac": recall_macro,
+                "f1 mac": f1_macro,
+            }
+            # add per class values
+            if input_att != "next":
+                # compute precision, recall, f1, support per class
+                precision, recall, f1, support = precision_recall_fscore_support(true_labels, predicted_labels)
+                for i, (p, r, f, s) in enumerate(zip(precision, recall, f1, support)):
+                    rec[f"precision_{i}"] = p
+                    rec[f"recall_{i}"] = r
+                    rec[f"f1_{i}"] = f
+                    rec[f"support_{i}"] = s
+            print(rec)
+            result_records.append(rec)
             done = True
     df = pd.DataFrame(result_records)
     return df
@@ -133,33 +202,53 @@ bnb_config = (BitsAndBytesConfig(
 
 
 def get_pair_data(samples_per_class, with_trace=False):
-    pair_df = pd.read_pickle(EVAL_PATH / "eval_train_data_pairs.pkl")
+    pair_df = pd.read_pickle(EVAL_PATH / "eval_train_data_pairs_balanced.pkl")
     if not with_trace:
         pair_df = pair_df.drop_duplicates(subset=["revision_id", "model_id", "eventually_follows"])
-    pair_df["anomalous"] = pair_df["out_of_order"]
-    # Set test_size to 0.5 to get 50% of the rows in the val set
-    pair_train_df, pair_val_df = split_by_model(pair_df, test_size=0.5, random_state=4)
+    # Split
+    pair_train_df, pair_val_df, pair_test_df = split_by_model(pair_df)
     # Sample data to have equal number of positive and negative samples
-    pair_val_df_positive = pair_val_df[~pair_val_df["anomalous"]].sample(n=samples_per_class, random_state=4)
-    pair_val_df_negative = pair_val_df[pair_val_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+    pair_train_df_positive = pair_train_df[~pair_train_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
+    pair_train_df_negative = pair_train_df[pair_train_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
+    pair_train_df = pd.concat([pair_train_df_positive, pair_train_df_negative])
+    # shuffle the data
+    pair_train_df = pair_train_df.sample(frac=1, random_state=4).reset_index(drop=True)
+    # Sample data to have equal number of positive and negative samples validation
+    pair_val_df_positive = pair_val_df[~pair_val_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
+    pair_val_df_negative = pair_val_df[pair_val_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
     pair_val_df = pd.concat([pair_val_df_negative, pair_val_df_positive])
     # shuffle the data
     pair_val_df = pair_val_df.sample(frac=1, random_state=4).reset_index(drop=True)
-    return pair_train_df, pair_val_df
+    return pair_train_df, pair_val_df, pair_test_df
 
 
 def get_trace_data(samples_per_class):
-    trace_df = pd.read_pickle(EVAL_PATH / "eval_train_data_traces.pkl")
+    trace_df = pd.read_pickle(EVAL_PATH / "eval_train_data_traces_balanced.pkl")
     trace_df["anomalous"] = trace_df.progress_apply(lambda x: len(x["label"]) > 0, axis=1)
     # Set test_size to 0.5 to get 50% of the rows in the val set
-    trace_train_df, trace_val_df = split_by_model(trace_df, test_size=0.5, random_state=4)
+    trace_train_df, trace_val_df, trace_test_df = split_by_model(trace_df)
     # Sample data to have equal number of positive and negative samples
-    trace_val_df_positive = trace_val_df[~trace_val_df["anomalous"]].sample(n=samples_per_class)
-    trace_val_df_negative = trace_val_df[trace_val_df["anomalous"]].sample(n=samples_per_class)
-    trace_val_df = pd.concat([trace_val_df_negative, trace_val_df_positive])
+    trace_train_df_positive = trace_train_df[~trace_train_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+    trace_train_df_negative = trace_train_df[trace_train_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+    trace_train_df = pd.concat([trace_train_df_positive, trace_train_df_negative])
     # shuffle the data
-    trace_val_df = trace_val_df.sample(frac=1).reset_index(drop=True)
-    return trace_train_df, trace_val_df
+    trace_train_df = trace_train_df.sample(frac=1, random_state=4).reset_index(drop=True)
+    # Sample data to have equal number of positive and negative samples
+    trace_val_df_positive = trace_val_df[~trace_val_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+    trace_val_df_negative = trace_val_df[trace_val_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+    trace_val_df = pd.concat([trace_val_df_positive, trace_val_df_negative])
+    # shuffle the data
+    trace_val_df = trace_val_df.sample(frac=1, random_state=4).reset_index(drop=True)
+    return trace_train_df, trace_val_df, trace_test_df
+
+
+def get_prefix_data(samples_per_class):
+    prefix_df = pd.read_pickle(EVAL_PATH / "eval_train_prefix_data.pkl")
+    prefix_df = prefix_df[~prefix_df["next"].str.contains("END")]
+    #prefix_df = prefix_df.drop_duplicates(subset=["revision_id", "model_id", "prefix", "next"])
+    prefix_train_df, prefix_val_df, prefix_test_df = split_by_model(prefix_df)
+    prefix_val_df = prefix_val_df.sample(n=samples_per_class, random_state=4)
+    return prefix_train_df, prefix_val_df, prefix_test_df
 
 
 def main():
@@ -179,15 +268,21 @@ def main():
     samples_per_class = int(args.samples_per_class)
 
     if args.task == "out_of_order":
-        train_df, val_df = get_pair_data(samples_per_class)
+        train_df, val_df, test_df = get_pair_data(samples_per_class)
         input_att = "eventually_follows"
         task_prompt = general_task_prompt_order
         get_few_shot_prompt = get_few_shot_prompt_pairs
     elif args.task == "trace_anomaly":
-        train_df, val_df = get_trace_data(samples_per_class)
+        train_df, val_df, test_df = get_trace_data(samples_per_class)
         input_att = "trace"
         task_prompt = general_task_prompt
         get_few_shot_prompt = get_few_shot_prompt_traces
+    elif args.task == "next_activity":
+        print("next activity prediction. samples per class will be ignored")
+        train_df, val_df, test_df = get_prefix_data(samples_per_class)
+        input_att = "next"
+        task_prompt = next_activity_prompt
+        get_few_shot_prompt = get_few_shot_prompt_prefix
     else:
         raise ValueError("Task not recognized")
 
@@ -199,6 +294,8 @@ def main():
     res_df.to_csv(EVAL_PATH /
                   (args.model.replace("/", "-")
                    + args.task + "_" + args.prompt_sample_sizes.replace("[", "").replace("]", "").replace(", ", "_")
+                   + "_samples_per_class" + str(samples_per_class) + "_runs" + str(n_runs) + str(
+                              general_task_prompt_order[-10:])
                    + "_eval_results.csv"), index=False)
 
 
