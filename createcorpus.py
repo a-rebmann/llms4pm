@@ -1,9 +1,26 @@
-import data as parser
+import pandas as pd
+from langdetect import LangDetectException, detect, DetectorFactory
+
+import data.model_parser as parser
+from const import DATA_ROOT
 from data.model_to_log import Model2LogConverter
 import pm4py
 import logging
 
 logging.basicConfig(format="%(asctime)s %(levelname)s - %(message)s", level=logging.WARN)
+
+
+def detect_language(x):
+    try:
+        res = detect(str(x).replace("{", "").replace("}", ""))
+    except LangDetectException:
+        print(f"Language detection failed for {x}")
+        res = "unknown"
+    return res
+
+
+# Set a seed for reproducibility (optional)
+DetectorFactory.seed = 0
 
 
 def run():
@@ -24,6 +41,11 @@ def run():
         print(f"Models for which a sound WF net, PT, DFG, and traces could be generated {len(model_df)}")
         # only keep model id, revision id, string traces and dfg
         model_df = model_df[["model_id", "revision_id", "name", "string_traces", "dfg", "pn", "pt"]]
+        model_df["unique_activities"] = model_df["string_traces"].apply(lambda x: set([e for t in x for e in t]))
+        # detect model language
+        model_df["language"] = model_df["unique_activities"].apply(lambda x: detect_language(x))
+        model_df = model_df[model_df["language"] == "en"]
+        model_df = model_df.drop_duplicates(subset=['unique_activities'])
         # save to the same Path but with a different name
         model_df.to_csv(str(csv_path).replace(".csv", "_corpus.csv"), index=False)
 
@@ -43,4 +65,21 @@ def create_pt(pn, im, fm):
     return pt
 
 
-run()
+def update_corpus():
+    c_path = DATA_ROOT / "basic_cleaned_corpus.csv"
+    model_df = pd.read_csv(c_path)
+    c_path = DATA_ROOT / "basic_cleaned_corpus_.csv"
+    model_df["string_traces"] = model_df["string_traces"].apply(eval)
+    model_df["unique_activities"] = model_df["string_traces"].apply(lambda x: set([e for t in x for e in t]))
+    model_df = model_df[model_df["unique_activities"] > 1]
+    # detect model language
+    model_df["language"] = model_df["unique_activities"].apply(lambda x: detect_language(x))
+    model_df = model_df[model_df["language"] == "en"]
+    model_df = model_df.drop_duplicates(subset=['unique_activities'])
+    # save to the same Path but with a different name
+    model_df.to_csv(c_path, index=False)
+
+
+if __name__ == "__main__":
+    run()
+    #update_corpus()

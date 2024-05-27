@@ -1,20 +1,22 @@
+import pickle
 import warnings
 import os
 import argparse
+from typing import cast
+
+from torch import nn
 from tqdm import tqdm
 import pandas as pd
-import numpy as np
 import torch
 from transformers import (
     AutoModelForCausalLM,
     BitsAndBytesConfig,
-    AutoTokenizer,
+    AutoTokenizer, MixtralForCausalLM,
 )
-from sklearn.model_selection import train_test_split
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support
 
-from const import MISTRAL_MODEL, EVAL_PATH, TASKS
+from const import MISTRAL_MODEL, EVAL_PATH, TASKS, DATA_ROOT
 from llm.prompts import general_task_prompt_order, get_few_shot_prompt_pairs, general_task_prompt, \
     get_few_shot_prompt_traces, get_few_shot_prompt_prefix, next_activity_prompt
 
@@ -22,16 +24,12 @@ warnings.filterwarnings("ignore")
 tqdm.pandas()
 
 
-def split_by_model(df, split_sizes: list[float] = [0.2, 0.1], random_state=4) -> tuple[
-    pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+def split_by_model(df) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     df["id"] = df["model_id"].astype(str) + "_" + df["revision_id"].astype(str)
-    model_ids = df["id"].unique()
-    train_val_ids, test_ids = train_test_split(
-        model_ids, test_size=split_sizes[-1], random_state=random_state
-    )
-    train_ids, val_ids = train_test_split(
-        train_val_ids, test_size=split_sizes[-2], random_state=random_state
-    )
+    with open(
+            DATA_ROOT / "train_val_test.pkl", "rb"
+    ) as file:
+        train_ids, val_ids, test_ids = pickle.load(file)
     train_df = df[df["id"].isin(train_ids)]
     val_df = df[df["id"].isin(val_ids)]
     test_df = df[df["id"].isin(test_ids)]
@@ -49,6 +47,16 @@ def get_model_and_tokenizer(model_name, device="cuda:1", quant_config=None):
     tokenizer = AutoTokenizer.from_pretrained(model_name, trust_remote_code=True)
     tokenizer.pad_token = tokenizer.eos_token
     return model, tokenizer
+
+
+def get_labelled_tokens(tokenizer, label_tokens: list[str]) -> list[int]:
+    """Returns the indices of label tokens in tokenizer vocabulary."""
+    out = []
+    for token in label_tokens:
+        input_ids = tokenizer(token, add_special_tokens=False)["input_ids"]
+        assert len(input_ids) == 1, f"{token} is of length {len(input_ids)}"
+        out.append(input_ids[0])
+    return out
 
 
 def generate_binary_output(model_name, device, model, tokenizer, prompt):
@@ -86,23 +94,37 @@ def generate_binary_output(model_name, device, model, tokenizer, prompt):
 def generate_activity_output(model_name, device, model, tokenizer, prompt, activities):
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
-    # print(prompt)
+    #print(prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     outputs = model.generate(
         input_ids=inputs["input_ids"],
         attention_mask=inputs["attention_mask"],
-        max_new_tokens=25,
+        max_new_tokens=5,
         return_dict_in_generate=True,
         output_scores=True,
     )
     input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
     generated_tokens = outputs.sequences[:, input_length:]
     decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-    for activity in activities:# + ["[END]"]:
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    for activity in alphabet:  # + ["[END]"]:
         if activity in decoded[0]:
-            return activity
+            print(activity, "found")
+            ix = alphabet.index(activity)
+            if len(activities) <= ix:
+                print("Activity not in list")
+                return "[END]"
+            return activities[ix]
     print(decoded[0], "does not contain any activity")
     return "[END]"
+
+
+def _get_act_list(list_of_activities):
+    alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+    act_list = "0. [END]\n"
+    for idx, act in enumerate(list_of_activities):
+        act_list += f"{alphabet[idx]}. {act}\n"
+    return act_list
 
 
 def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_sizes, n_runs, train_df, val_df,
@@ -143,10 +165,10 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 val_df["y"] = val_df.progress_apply(
                     lambda x: generate_activity_output(model_name, device, model, tokenizer,
                                                        this_prompt +
-                                                       str(x["unique_activities"]) + "\n"
-                                                       + "Prefix of a Trace:" + str(
-                                                           x["prefix"]) + "\nPredicted Next Activity:",
-                                                       activities=list(eval(x["unique_activities"]))),
+                                                       _get_act_list(x["unique_activities"]) + "\n"
+                                                       + "Sequence of activities:" + str(
+                                                           x["prefix"]) + "\nAnswer:",
+                                                       activities=list(x["unique_activities"])),
                     axis=1)
             print("Detected raw", val_df['y'].value_counts())
             # val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
@@ -203,51 +225,61 @@ bnb_config = (BitsAndBytesConfig(
 
 def get_pair_data(samples_per_class, with_trace=False):
     pair_df = pd.read_pickle(EVAL_PATH / "eval_train_data_pairs_balanced.pkl")
+    pair_df["unique_activities"] = pair_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     if not with_trace:
         pair_df = pair_df.drop_duplicates(subset=["revision_id", "model_id", "eventually_follows"])
     # Split
     pair_train_df, pair_val_df, pair_test_df = split_by_model(pair_df)
-    # Sample data to have equal number of positive and negative samples
-    pair_train_df_positive = pair_train_df[~pair_train_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
-    pair_train_df_negative = pair_train_df[pair_train_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
-    pair_train_df = pd.concat([pair_train_df_positive, pair_train_df_negative])
-    # shuffle the data
-    pair_train_df = pair_train_df.sample(frac=1, random_state=4).reset_index(drop=True)
-    # Sample data to have equal number of positive and negative samples validation
+
     pair_val_df_positive = pair_val_df[~pair_val_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
     pair_val_df_negative = pair_val_df[pair_val_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
     pair_val_df = pd.concat([pair_val_df_negative, pair_val_df_positive])
     # shuffle the data
     pair_val_df = pair_val_df.sample(frac=1, random_state=4).reset_index(drop=True)
+    # sample data to have equal number of positive and negative samples test
+    if samples_per_class*2 < len(pair_test_df):
+        pair_test_df_positive = pair_test_df[~pair_test_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
+        pair_test_df_negative = pair_test_df[pair_test_df["out_of_order"]].sample(n=samples_per_class, random_state=4)
+        pair_test_df = pd.concat([pair_test_df_negative, pair_test_df_positive])
+    # shuffle the data
+    pair_test_df = pair_test_df.sample(frac=1, random_state=4).reset_index(drop=True)
     return pair_train_df, pair_val_df, pair_test_df
 
 
 def get_trace_data(samples_per_class):
     trace_df = pd.read_pickle(EVAL_PATH / "eval_train_data_traces_balanced.pkl")
+    trace_df["unique_activities"] = trace_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     trace_df["anomalous"] = trace_df.progress_apply(lambda x: len(x["label"]) > 0, axis=1)
-    # Set test_size to 0.5 to get 50% of the rows in the val set
+    # Split
     trace_train_df, trace_val_df, trace_test_df = split_by_model(trace_df)
-    # Sample data to have equal number of positive and negative samples
-    trace_train_df_positive = trace_train_df[~trace_train_df["anomalous"]].sample(n=samples_per_class, random_state=4)
-    trace_train_df_negative = trace_train_df[trace_train_df["anomalous"]].sample(n=samples_per_class, random_state=4)
-    trace_train_df = pd.concat([trace_train_df_positive, trace_train_df_negative])
-    # shuffle the data
-    trace_train_df = trace_train_df.sample(frac=1, random_state=4).reset_index(drop=True)
     # Sample data to have equal number of positive and negative samples
     trace_val_df_positive = trace_val_df[~trace_val_df["anomalous"]].sample(n=samples_per_class, random_state=4)
     trace_val_df_negative = trace_val_df[trace_val_df["anomalous"]].sample(n=samples_per_class, random_state=4)
     trace_val_df = pd.concat([trace_val_df_positive, trace_val_df_negative])
     # shuffle the data
     trace_val_df = trace_val_df.sample(frac=1, random_state=4).reset_index(drop=True)
+    # Sample data to have equal number of positive and negative samples
+    if samples_per_class*2 < len(trace_test_df):
+        trace_test_df_positive = trace_test_df[~trace_test_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+        trace_test_df_negative = trace_test_df[trace_test_df["anomalous"]].sample(n=samples_per_class, random_state=4)
+        trace_test_df = pd.concat([trace_test_df_positive, trace_test_df_negative])
+    # shuffle the data
+    trace_test_df = trace_test_df.sample(frac=1, random_state=4).reset_index(drop=True)
     return trace_train_df, trace_val_df, trace_test_df
 
 
 def get_prefix_data(samples_per_class):
     prefix_df = pd.read_pickle(EVAL_PATH / "eval_train_prefix_data.pkl")
+    prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     prefix_df = prefix_df[~prefix_df["next"].str.contains("END")]
-    #prefix_df = prefix_df.drop_duplicates(subset=["revision_id", "model_id", "prefix", "next"])
+    prefix_df["prefix"] = prefix_df["prefix"].apply(lambda x: tuple(x))
+    prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: tuple(x))
+    prefix_df = prefix_df.drop_duplicates(subset=["revision_id", "model_id", "prefix", "unique_activities"])
+    prefix_df["prefix"] = prefix_df["prefix"].apply(lambda x: list(x))
+    prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: set(x))
     prefix_train_df, prefix_val_df, prefix_test_df = split_by_model(prefix_df)
-    prefix_val_df = prefix_val_df.sample(n=samples_per_class, random_state=4)
+    prefix_val_df = prefix_val_df.sample(n=samples_per_class * 2, random_state=4)
+    prefix_test_df = prefix_test_df.sample(n=samples_per_class * 2, random_state=4)
     return prefix_train_df, prefix_val_df, prefix_test_df
 
 
@@ -287,10 +319,22 @@ def main():
         raise ValueError("Task not recognized")
 
     model, tokenizer = get_model_and_tokenizer(model_name, device=device, quant_config=None)
+    print(len(train_df), len(val_df), len(test_df))
+
+    #model = cast(MixtralForCausalLM, model)
+    #model.lm_head = torch.nn.Identity()
+    #embeddings = model.get_output_embeddings()
+    #ids = get_labelled_tokens(tokenizer, ["True", "False"] if input_att != "next" else list(
+    #    "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
+    # index token ids of output embedding matrix
+    #_clf_head = nn.Parameter(embeddings.weight[ids].clone().T)
+    #_clf_head.requires_grad = False
+
     res_df = run_evaluation_loop(model_name=model_name, device=device, model=model, tokenizer=tokenizer,
                                  prompt_sample_sizes=prompt_sample_sizes, n_runs=n_runs, train_df=train_df,
-                                 val_df=val_df, task_prompt=task_prompt,
-                                 get_few_shot_prompt=get_few_shot_prompt, input_att=input_att)
+                                 val_df=test_df, task_prompt=task_prompt,
+                                 get_few_shot_prompt=get_few_shot_prompt,
+                                 input_att=input_att)
     res_df.to_csv(EVAL_PATH /
                   (args.model.replace("/", "-")
                    + args.task + "_" + args.prompt_sample_sizes.replace("[", "").replace("]", "").replace(", ", "_")

@@ -5,11 +5,9 @@ import pandas as pd
 
 from data.behavioral_profile import get_behavioral_profile_as_df
 from data.verifier import is_true_anomaly
-from langdetect import DetectorFactory, detect, LangDetectException
 from const import DATA_ROOT
 
-# Set a seed for reproducibility (optional)
-DetectorFactory.seed = 0
+
 
 NOISY_TRACE_PROB = 0.55
 NOISY_EVENT_PROB = 0.0
@@ -172,24 +170,9 @@ def create_eval_data(df):
     return df
 
 
-def detect_language(x):
-    try:
-        res = detect(str(x).replace("{", "").replace("}", ""))
-    except LangDetectException:
-        print(f"Language detection failed for {x}")
-        res = "unknown"
-    return res
-
-
-
 if __name__ == "__main__":
     model_df = pd.read_csv(DATA_ROOT / "basic_cleaned_corpus.csv")
     model_df["string_traces"] = model_df["string_traces"].apply(eval)
-    model_df["unique_activities"] = model_df["string_traces"].apply(lambda x: set([e for t in x for e in t]))
-    # detect model language
-    model_df["language"] = model_df["unique_activities"].apply(lambda x: detect_language(x))
-    model_df = model_df[model_df["language"] == "en"]
-    model_df = model_df.drop_duplicates(subset=['unique_activities'])
     create_eval_data(model_df)
     create_pair_data(model_df)
     model_df.to_csv(DATA_ROOT / "eval_data_ooo.csv", index=False)
