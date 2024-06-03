@@ -51,3 +51,13 @@ In case of binary tasks one positive and one negative example from the same proc
 ### Fine-tuning
 The fine-tuning experiments are run using the Trident framework. See this repository for our fine-funing evaluation scripts and how to use them:
 https://github.com/fdschmidt93/trident-bpm
+- The sub-folder 'bpm' contains the necessary preprocessing and evaluation code.
+- The individual tasks can be run using bash scripts:
+    - 'pair.sh' for A-SAD using LLMs
+    - 'trace.sh' for T-SAD using LLMs
+    - 'activity.sh' for S-NAP using LLMs
+    - 'trace_activity.sh' for multi-task T-SAD and S-NAP using LLMs
+    - 'pair_roberta.sh' for A-SAD using RoBERTa
+    - 'trace_roberta.sh' for T-SAD using RoBERTa
+    - 'activity_roberta.sh' for S-NAP using RoBERTa
+    - 'trace_activity_roberta.sh' for multi-task T-SAD and S-NAP using RoBERTa
