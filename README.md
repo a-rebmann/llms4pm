@@ -7,6 +7,16 @@ This repository contains the evaluation scripts and results as described in the 
 ## Data
 The corpus and datasets can be downloaded from here: [datasets](https://zenodo.org/records/11276246)
 
+### ICL task descriptions
+- T-SAD: Given a set of activities that constitute an organizational process and a sequence of activities, determine whether the sequence is a valid execution of the process. 
+The activities in the sequence must be performed in the correct order for the execution to be valid.
+Provide either True or False as the answer and nothing else.
+- A-SAD: You are given a list of activities that constitute an organizational process and a sequence of activities that have been performed in the given order.
+Which activity from the list should be performed next in the sequence? 
+The answer should be one activity from the list and nothing else.
+- S-NAP: You are given a set of activities that constitute an organizational process and two activities performed in a single process execution. Determine whether it is valid for the first activity to occur before the second. 
+Provide either True or False as the answer and nothing else.
+
 ## Results
 The results of the experiments can be found in the 'eval/' folder. They are stored in a .csv file 
 
