@@ -17,7 +17,7 @@ Nvidia GPU with at least 42GB of memory is required to run the experiments (e.g.
 ### Setup 
 #### via pip
 
-Set up a virtual env and then run the following CLI in the project root folder (set the parameters of your choice, the config of the paper corresponds to the examples listed):
+First, set up a virtual env (conda is useful for this):
 
 ```shell
 pip install -r requirements.txt
@@ -29,10 +29,12 @@ pip install -r requirements.txt
 2. Place the downloaded dataset into the 'data/' folder.
 3. Place the 'train_val_test.pkl' file in the 'data/' folder.
 
-4. To run the ICL experiments, execute the following command:
+4. To run the ICL experiments, execute the following CLI in the project root folder (set the parameters of your choice, the config of the paper corresponds to the examples listed in the parameter descriptions below):
 ```shell
 python evaluate_llm.py --task --device --hf_model --rand_shots --runs --num_samples
 ```
+
+#### Parameters
 --task: one of "out_of_order", "trace_anomaly", "next_activity"
 
 --device: e.g., "cuda:0" for the first GPU on your machine
