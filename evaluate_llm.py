@@ -319,16 +319,6 @@ def main():
         raise ValueError("Task not recognized")
 
     model, tokenizer = get_model_and_tokenizer(model_name, device=device, quant_config=None)
-    print(len(train_df), len(val_df), len(test_df))
-
-    #model = cast(MixtralForCausalLM, model)
-    #model.lm_head = torch.nn.Identity()
-    #embeddings = model.get_output_embeddings()
-    #ids = get_labelled_tokens(tokenizer, ["True", "False"] if input_att != "next" else list(
-    #    "0ABCDEFGHIJKLMNOPQRSTUVWXYZ"))
-    # index token ids of output embedding matrix
-    #_clf_head = nn.Parameter(embeddings.weight[ids].clone().T)
-    #_clf_head.requires_grad = False
 
     res_df = run_evaluation_loop(model_name=model_name, device=device, model=model, tokenizer=tokenizer,
                                  prompt_sample_sizes=prompt_sample_sizes, n_runs=n_runs, train_df=train_df,
