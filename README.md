@@ -7,7 +7,7 @@ This repository contains the evaluation scripts and results as described in the 
 ## Data
 The corpus and datasets can be downloaded from here: [datasets](https://zenodo.org/records/11276246)
 
-### ICL task descriptions
+### ICL task descriptions (taken from llm/prompts.py)
 - T-SAD: Given a set of activities that constitute an organizational process and a sequence of activities, determine whether the sequence is a valid execution of the process. 
 The activities in the sequence must be performed in the correct order for the execution to be valid.
 Provide either True or False as the answer and nothing else.
