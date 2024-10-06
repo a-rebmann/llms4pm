@@ -16,7 +16,7 @@ from transformers import (
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support
 
-from const import MISTRAL_MODEL, EVAL_PATH, TASKS, DATA_ROOT, DFG_GENERATION, NEXT_ACTIVITY, OUT_OF_ORDER, \
+from const import MISTRAL_MODEL, EVAL_PATH, TASKS, DFG_GENERATION, NEXT_ACTIVITY, OUT_OF_ORDER, \
     TRACE_ANOMALY, PT_GENERATION
 from eval_util import compute_footprint_fitness, compute_footprint_matrix_pairs, generate_traces_from_tree, compute_footprint_matrix
 from llm.prompts import general_task_prompt_order, get_few_shot_prompt_pairs, general_task_prompt, \
@@ -30,7 +30,7 @@ tqdm.pandas()
 def split_by_model(df) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
     df["id"] = df["model_id"].astype(str) + "_" + df["revision_id"].astype(str)
     with open(
-            DATA_ROOT / "train_val_test.pkl", "rb"
+            EVAL_PATH / "train_val_test.pkl", "rb"
     ) as file:
         train_ids, val_ids, test_ids = pickle.load(file)
     train_df = df[df["id"].isin(train_ids)]

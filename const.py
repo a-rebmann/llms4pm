@@ -4,7 +4,7 @@ PROJECT_ROOT: Path = Path(__file__).parents[1].resolve()
 DATA_ROOT = PROJECT_ROOT / "data"
 DATA_DATASET = DATA_ROOT / "models"
 DATA_RESULTS = DATA_ROOT / "results"
-EVAL_PATH = DATA_ROOT  # / "eval" # changed for simplicity (for DWS servers uncomment the 'eval' part)
+EVAL_PATH = DATA_ROOT  / "eval" # changed for simplicity 
 BPMN2_NAMESPACE = "http://b3mn.org/stencilset/bpmn2.0#"
 
 
