@@ -45,7 +45,7 @@ python evaluate_llm.py --task --device --hf_model --rand_shots --runs --num_samp
 ```
 
 #### Parameters
---task: one of "out_of_order", "trace_anomaly", "next_activity", "dfg_generation", "pt_generation"
+--task: one of "out_of_order", "trace_anomaly", "next_activity", "dfg_generation", "pt_generation""
 
 --device: e.g., "cuda:0" for the first GPU on your machine
 

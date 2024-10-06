@@ -1,7 +1,7 @@
 from pathlib import Path
 
 PROJECT_ROOT: Path = Path(__file__).parents[0].resolve()
-DATA_ROOT = PROJECT_ROOT / "data"
+DATA_ROOT = PROJECT_ROOT #/ "data"
 DATA_DATASET = DATA_ROOT / "models"
 DATA_RESULTS = DATA_ROOT / "results"
 EVAL_PATH = DATA_ROOT  / "eval" # changed for simplicity 
