@@ -121,7 +121,7 @@ def generate_activity_output(model_name, device, model, tokenizer, prompt, activ
     print(decoded[0], "does not contain any activity")
     return "[END]"
 
-def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt, activities):
+def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
     #print(prompt)
@@ -143,7 +143,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt, 
     parsed = [(x[0], x[1]) for x in decoded]
     return parsed
 
-def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt, activities):
+def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt):
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
     #print(prompt)
@@ -218,15 +218,13 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     val_df["y"] = val_df.progress_apply(
                         lambda x: generate_dfg_discovery_output(model_name, device, model, tokenizer,
                                                            this_prompt +
-                                                           _get_act_list(x["unique_activities"]) + "\nAnswer:",
-                                                           activities=x["dfg"]),
+                                                           _get_act_list(x["unique_activities"]) + "\nAnswer:"),
                         axis=1)
                 elif task == PT_GENERATION:
                     val_df["y"] = val_df.progress_apply(
                         lambda x: generate_pt_discovery_output(model_name, device, model, tokenizer,
                                                            this_prompt +
-                                                           _get_act_list(x["unique_activities"]) + "\nAnswer:",
-                                                           activities=x["pt"]),
+                                                           _get_act_list(x["unique_activities"]) + "\nAnswer:"),
                         axis=1)
             print("Detected raw", val_df['y'].value_counts())
             # val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
@@ -377,6 +375,7 @@ def get_prefix_data(samples_per_class):
 def get_discovery_data(samples_per_class):
     dfg_df = pd.read_csv(EVAL_PATH / "S-PMD.csv")
     dfg_df["unique_activities"] = dfg_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
+    dfg_df["dfg"] = dfg_df["dfg"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     dfg_train_df, dfg_val_df, dfg_test_df = split_by_model(dfg_df)
     dfg_val_df = dfg_val_df.sample(n=samples_per_class * 2, random_state=4)
     dfg_test_df = dfg_test_df.sample(n=samples_per_class * 2, random_state=4)
@@ -384,7 +383,7 @@ def get_discovery_data(samples_per_class):
 
 
 def main():
-    os.environ["HUGGINGFACE_HUB_CACHE"] = "/home/arebmann/.chache/"
+    os.environ["HUGGINGFACE_HUB_CACHE"] = "/home/ubuntu/.chache/"
     parser = argparse.ArgumentParser(description='A simple command line interface')
     parser.add_argument('task', choices=TASKS, help='The task to run')
     parser.add_argument('device', help='Device to use (e.g. cuda:1)')
@@ -416,11 +415,13 @@ def main():
         task_prompt = next_activity_prompt
         get_few_shot_prompt = get_few_shot_prompt_prefix
     elif args.task == DFG_GENERATION:
+        print("discovery. samples per class will be ignored")
         train_df, val_df, test_df = get_discovery_data(samples_per_class)
         input_att = "unique_activities"
         task_prompt = dfg_task_prompt
         get_few_shot_prompt = get_few_shot_prompt_dfg
     elif args.task == PT_GENERATION:
+        print("discovery. samples per class will be ignored")
         train_df, val_df, test_df = get_discovery_data(samples_per_class)
         input_att = "unique_activities"
         task_prompt = pt_task_prompt
@@ -435,7 +436,7 @@ def main():
                                  prompt_sample_sizes=prompt_sample_sizes, n_runs=n_runs, train_df=train_df,
                                  val_df=test_df, task_prompt=task_prompt,
                                  get_few_shot_prompt=get_few_shot_prompt,
-                                 input_att=input_att, task=arg.task)
+                                 input_att=input_att, task=args.task)
     res_df.to_csv(EVAL_PATH /
                   (args.model.replace("/", "-")
                    + args.task + "_" + args.prompt_sample_sizes.replace("[", "").replace("]", "").replace(", ", "_")
