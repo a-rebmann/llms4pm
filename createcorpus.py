@@ -66,18 +66,18 @@ def create_pt(pn, im, fm):
 
 
 def update_corpus():
-    c_path = DATA_ROOT / "basic_cleaned_corpus.csv"
+    c_path = DATA_ROOT / "process_behavior_corpus.csv"
     model_df = pd.read_csv(c_path)
-    c_path = DATA_ROOT / "basic_cleaned_corpus_.csv"
-    model_df["string_traces"] = model_df["string_traces"].apply(eval)
-    model_df["unique_activities"] = model_df["string_traces"].apply(lambda x: set([e for t in x for e in t]))
-    model_df = model_df[model_df["unique_activities"] > 1]
-    # detect model language
-    model_df["language"] = model_df["unique_activities"].apply(lambda x: detect_language(x))
-    model_df = model_df[model_df["language"] == "en"]
-    model_df = model_df.drop_duplicates(subset=['unique_activities'])
+    # c_path = DATA_ROOT / "process_behavior_corpus_v2.csv"
+    # model_df["string_traces"] = model_df["string_traces"].apply(eval)
+    # model_df["unique_activities"] = model_df["string_traces"].apply(lambda x: set([e for t in x for e in t]))
+    # model_df = model_df[model_df["unique_activities"] > 1]
+    # # detect model language
+    # model_df["language"] = model_df["unique_activities"].apply(lambda x: detect_language(x))
+    # model_df = model_df[model_df["language"] == "en"]
+    # model_df = model_df.drop_duplicates(subset=['unique_activities'])
     # save to the same Path but with a different name
-    model_df.to_csv(c_path, index=False)
+    # model_df.to_csv(c_path, index=False)
 
 
 if __name__ == "__main__":

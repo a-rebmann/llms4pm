@@ -15,6 +15,50 @@ general_task_prompt_order = """You are given a set of activities that constitute
 Provide either True or False as the answer and nothing else."""
 
 
+dfg_task_prompt = """Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
+Provide only a list of pairs and nothing else.
+"""
+
+pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
+A process tree is a tree-like structure that represents the possible order and co-occurrence of activities in executions of this process. 
+There are four operands in a process tree: sequence (represented as ->), parallel (represented as +), loop (represented as *), and exclusive choice (represented as x).
+Provide the process tree as the answer and nothing else.
+"""
+
+traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
+The activities in the sequence must be performed in the correct order for the execution to be valid.
+Provide only a list of activitiy sequences as the answer and nothing else.
+"""
+
+
+def get_few_shot_prompt_dfg(sample_df, n_samples, task_prompt, input_att):
+    if n_samples == 0:
+        return task_prompt + "List of activities: " + str(row['unique_activities']) + "\n"
+    in_context_examples = sample_df.sample(n=n_samples)
+    examples = "\nExamples:\n"
+    for i, row in in_context_examples.iterrows():
+        # create a pair list
+        pair_list = ""
+        for pair in eval(row['dfg']):
+            pair_list += f"{pair[0]} -> {pair[1]}\n"
+        examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
+                     + "Pairs of activities:\n" + pair_list + "\n")
+    few_shot_prompt = task_prompt + examples
+    return few_shot_prompt + "List of activities:\n"
+
+
+def get_few_shot_prompt_pt(sample_df, n_samples, task_prompt, input_att):
+    if n_samples == 0:
+        return task_prompt + "List of activities: " + str(row['unique_activities']) + "\n"
+    in_context_examples = sample_df.sample(n=n_samples)
+    examples = "\nExamples:\n"
+    for i, row in in_context_examples.iterrows():
+        examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
+                     + "Process tree:\n" + row["pt"] + "\n")
+    few_shot_prompt = task_prompt + examples
+    return few_shot_prompt + "List of activities:\n"
+
+
 def get_few_shot_prompt_prefix(sample_df, n_samples, task_prompt, input_att):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     if n_samples == 0:

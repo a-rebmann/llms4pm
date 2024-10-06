@@ -16,9 +16,12 @@ from transformers import (
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support
 
-from const import MISTRAL_MODEL, EVAL_PATH, TASKS, DATA_ROOT
+from const import MISTRAL_MODEL, EVAL_PATH, TASKS, DATA_ROOT, DFG_GENERATION, NEXT_ACTIVITY, OUT_OF_ORDER, \
+    TRACE_ANOMALY, PT_GENERATION
+from eval_util import compute_footprint_fitness, compute_footprint_matrix_pairs, generate_traces_from_tree, compute_footprint_matrix
 from llm.prompts import general_task_prompt_order, get_few_shot_prompt_pairs, general_task_prompt, \
-    get_few_shot_prompt_traces, get_few_shot_prompt_prefix, next_activity_prompt
+    get_few_shot_prompt_traces, get_few_shot_prompt_prefix, next_activity_prompt, dfg_task_prompt, \
+    get_few_shot_prompt_dfg, pt_task_prompt, get_few_shot_prompt_pt
 
 warnings.filterwarnings("ignore")
 tqdm.pandas()
@@ -118,6 +121,46 @@ def generate_activity_output(model_name, device, model, tokenizer, prompt, activ
     print(decoded[0], "does not contain any activity")
     return "[END]"
 
+def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt, activities):
+    if model_name == MISTRAL_MODEL:
+        prompt = "[INST]" + prompt + "[/INST]"
+    #print(prompt)
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    outputs = model.generate(
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
+        max_new_tokens=1000,
+        return_dict_in_generate=True,
+        output_scores=True,
+    )
+    input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
+    generated_tokens = outputs.sequences[:, input_length:]
+    decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    print(decoded[0])
+    # parse list of pars like 'A' -> 'B'\n 'C' -> 'D' into a list of tuples
+    parsed = decoded[0].split("\n")
+    parsed = [x.split(" -> ") for x in decoded]
+    parsed = [(x[0], x[1]) for x in decoded]
+    return parsed
+
+def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt, activities):
+    if model_name == MISTRAL_MODEL:
+        prompt = "[INST]" + prompt + "[/INST]"
+    #print(prompt)
+    inputs = tokenizer(prompt, return_tensors="pt").to(device)
+    outputs = model.generate(
+        input_ids=inputs["input_ids"],
+        attention_mask=inputs["attention_mask"],
+        max_new_tokens=1000,
+        return_dict_in_generate=True,
+        output_scores=True,
+    )
+    input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
+    generated_tokens = outputs.sequences[:, input_length:]
+    decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
+    print(decoded[0])
+    return decoded[0]
+
 
 def _get_act_list(list_of_activities):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
@@ -128,7 +171,7 @@ def _get_act_list(list_of_activities):
 
 
 def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_sizes, n_runs, train_df, val_df,
-                        task_prompt, get_zero_shot_prompt=None, get_few_shot_prompt=None, input_att=None):
+                        task_prompt, get_zero_shot_prompt=None, get_few_shot_prompt=None, input_att=None, task=None):
     if get_zero_shot_prompt is None and get_few_shot_prompt is None:
         print("Either a zero or few shot prompt generation function must be passed")
         return None
@@ -170,6 +213,21 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                                                            x["prefix"]) + "\nAnswer:",
                                                        activities=list(x["unique_activities"])),
                     axis=1)
+            elif input_att == "unique_activities":
+                if task == DFG_GENERATION:
+                    val_df["y"] = val_df.progress_apply(
+                        lambda x: generate_dfg_discovery_output(model_name, device, model, tokenizer,
+                                                           this_prompt +
+                                                           _get_act_list(x["unique_activities"]) + "\nAnswer:",
+                                                           activities=x["dfg"]),
+                        axis=1)
+                elif task == PT_GENERATION:
+                    val_df["y"] = val_df.progress_apply(
+                        lambda x: generate_pt_discovery_output(model_name, device, model, tokenizer,
+                                                           this_prompt +
+                                                           _get_act_list(x["unique_activities"]) + "\nAnswer:",
+                                                           activities=x["pt"]),
+                        axis=1)
             print("Detected raw", val_df['y'].value_counts())
             # val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
             # print("Detected parsed", val_df['y'].value_counts())
@@ -179,38 +237,71 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 true_labels = ~val_df['out_of_order']
             elif input_att == "next":
                 true_labels = val_df['next']
+            elif input_att == "unique_activities":
+                if task == DFG_GENERATION:
+                    true_labels = val_df['dfg']
+                elif task == PT_GENERATION:
+                    true_labels = val_df['string_traces']
             else:
                 raise NotImplemented
             print("True parsed", true_labels.value_counts())
             predicted_labels = val_df['y']
-            # Compute precision, recall, and F1 score
-            precision_micro = precision_score(true_labels, predicted_labels, average='micro')
-            recall_micro = recall_score(true_labels, predicted_labels, average='micro')
-            f1_micro = f1_score(true_labels, predicted_labels, average='micro')
-            precision_macro = precision_score(true_labels, predicted_labels, average='macro')
-            recall_macro = recall_score(true_labels, predicted_labels, average='macro')
-            f1_macro = f1_score(true_labels, predicted_labels, average='macro')
-            rec = {
-                "sample_size": sample_size,
-                "run": run,
-                "precision mic": precision_micro,
-                "recall mic": recall_micro,
-                "f1 mic": f1_micro,
-                "precision mac": precision_macro,
-                "recall mac": recall_macro,
-                "f1 mac": f1_macro,
-            }
-            # add per class values
-            if input_att != "next":
-                # compute precision, recall, f1, support per class
-                precision, recall, f1, support = precision_recall_fscore_support(true_labels, predicted_labels)
-                for i, (p, r, f, s) in enumerate(zip(precision, recall, f1, support)):
-                    rec[f"precision_{i}"] = p
-                    rec[f"recall_{i}"] = r
-                    rec[f"f1_{i}"] = f
-                    rec[f"support_{i}"] = s
-            print(rec)
-            result_records.append(rec)
+
+            if task == DFG_GENERATION:
+                # comute average fitness
+                fitness = []
+                for true, pred in zip(true_labels, predicted_labels):
+                    true_matrix = compute_footprint_matrix_pairs(true)
+                    pred_matrix = compute_footprint_matrix_pairs(pred)
+                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                rec = {
+                    "sample_size": sample_size,
+                    "run": run,
+                    "fitness": fitness,
+                }
+                
+            elif task == PT_GENERATION:
+                # compute average fitness
+                fitness = []
+                for true, pred in zip(true_labels, predicted_labels):
+                    true_matrix = compute_footprint_matrix(true)
+                    str_traces = generate_traces_from_tree(pred)
+                    pred_matrix = compute_footprint_matrix(str_traces)
+                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                rec = {
+                    "sample_size": sample_size,
+                    "run": run,
+                    "fitness": fitness,
+                }
+            else:
+                # Compute precision, recall, and F1 score
+                precision_micro = precision_score(true_labels, predicted_labels, average='micro')
+                recall_micro = recall_score(true_labels, predicted_labels, average='micro')
+                f1_micro = f1_score(true_labels, predicted_labels, average='micro')
+                precision_macro = precision_score(true_labels, predicted_labels, average='macro')
+                recall_macro = recall_score(true_labels, predicted_labels, average='macro')
+                f1_macro = f1_score(true_labels, predicted_labels, average='macro')
+                rec = {
+                    "sample_size": sample_size,
+                    "run": run,
+                    "precision mic": precision_micro,
+                    "recall mic": recall_micro,
+                    "f1 mic": f1_micro,
+                    "precision mac": precision_macro,
+                    "recall mac": recall_macro,
+                    "f1 mac": f1_macro,
+                }
+                # add per class values
+                if input_att != "next":
+                    # compute precision, recall, f1, support per class
+                    precision, recall, f1, support = precision_recall_fscore_support(true_labels, predicted_labels)
+                    for i, (p, r, f, s) in enumerate(zip(precision, recall, f1, support)):
+                        rec[f"precision_{i}"] = p
+                        rec[f"recall_{i}"] = r
+                        rec[f"f1_{i}"] = f
+                        rec[f"support_{i}"] = s
+                print(rec)
+                result_records.append(rec)
             done = True
     df = pd.DataFrame(result_records)
     return df
@@ -283,8 +374,17 @@ def get_prefix_data(samples_per_class):
     return prefix_train_df, prefix_val_df, prefix_test_df
 
 
+def get_discovery_data(samples_per_class):
+    dfg_df = pd.read_csv(EVAL_PATH / "S-PMD.csv")
+    dfg_df["unique_activities"] = dfg_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
+    dfg_train_df, dfg_val_df, dfg_test_df = split_by_model(dfg_df)
+    dfg_val_df = dfg_val_df.sample(n=samples_per_class * 2, random_state=4)
+    dfg_test_df = dfg_test_df.sample(n=samples_per_class * 2, random_state=4)
+    return dfg_train_df, dfg_val_df, dfg_test_df
+
+
 def main():
-    os.environ["HUGGINGFACE_HUB_CACHE"] = "/work/arebmann/.chache/"
+    os.environ["HUGGINGFACE_HUB_CACHE"] = "/home/arebmann/.chache/"
     parser = argparse.ArgumentParser(description='A simple command line interface')
     parser.add_argument('task', choices=TASKS, help='The task to run')
     parser.add_argument('device', help='Device to use (e.g. cuda:1)')
@@ -299,22 +399,33 @@ def main():
     n_runs = int(args.n_runs)
     samples_per_class = int(args.samples_per_class)
 
-    if args.task == "out_of_order":
+    if args.task == OUT_OF_ORDER:
         train_df, val_df, test_df = get_pair_data(samples_per_class)
         input_att = "eventually_follows"
         task_prompt = general_task_prompt_order
         get_few_shot_prompt = get_few_shot_prompt_pairs
-    elif args.task == "trace_anomaly":
+    elif args.task == TRACE_ANOMALY:
         train_df, val_df, test_df = get_trace_data(samples_per_class)
         input_att = "trace"
         task_prompt = general_task_prompt
         get_few_shot_prompt = get_few_shot_prompt_traces
-    elif args.task == "next_activity":
+    elif args.task ==NEXT_ACTIVITY:
         print("next activity prediction. samples per class will be ignored")
         train_df, val_df, test_df = get_prefix_data(samples_per_class)
         input_att = "next"
         task_prompt = next_activity_prompt
         get_few_shot_prompt = get_few_shot_prompt_prefix
+    elif args.task == DFG_GENERATION:
+        train_df, val_df, test_df = get_discovery_data(samples_per_class)
+        input_att = "unique_activities"
+        task_prompt = dfg_task_prompt
+        get_few_shot_prompt = get_few_shot_prompt_dfg
+    elif args.task == PT_GENERATION:
+        train_df, val_df, test_df = get_discovery_data(samples_per_class)
+        input_att = "unique_activities"
+        task_prompt = pt_task_prompt
+        get_few_shot_prompt = get_few_shot_prompt_pt
+    
     else:
         raise ValueError("Task not recognized")
 
@@ -324,7 +435,7 @@ def main():
                                  prompt_sample_sizes=prompt_sample_sizes, n_runs=n_runs, train_df=train_df,
                                  val_df=test_df, task_prompt=task_prompt,
                                  get_few_shot_prompt=get_few_shot_prompt,
-                                 input_att=input_att)
+                                 input_att=input_att, task=arg.task)
     res_df.to_csv(EVAL_PATH /
                   (args.model.replace("/", "-")
                    + args.task + "_" + args.prompt_sample_sizes.replace("[", "").replace("]", "").replace(", ", "_")
