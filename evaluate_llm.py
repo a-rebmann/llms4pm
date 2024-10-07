@@ -220,13 +220,13 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     val_df["y"] = val_df.progress_apply(
                         lambda x: generate_dfg_discovery_output(model_name, device, model, tokenizer,
                                                            this_prompt +
-                                                           x["unique_activities"] + "\nPairs of activities:"),
+                                                           str(x["unique_activities"]) + "\nPairs of activities:"),
                         axis=1)
                 elif task == PT_GENERATION:
                     val_df["y"] = val_df.progress_apply(
                         lambda x: generate_pt_discovery_output(model_name, device, model, tokenizer,
                                                            this_prompt +
-                                                           x["unique_activities"] + "\nProcess tree:"),
+                                                           str(x["unique_activities"]) + "\nProcess tree:"),
                         axis=1)
             print("Detected raw", val_df['y'].value_counts())
             # val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
