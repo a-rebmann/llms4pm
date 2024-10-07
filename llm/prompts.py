@@ -42,7 +42,7 @@ def get_few_shot_prompt_dfg(sample_df, n_samples, task_prompt, input_att):
         for pair in row['dfg']:
             pair_list += f"{pair[0]} -> {pair[1]}\n"
         examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
-                     + "Pairs of activities:\n" + pair_list + "\n")
+                     + "Pairs of activities:\n" + pair_list + "\n[END]\n")
     few_shot_prompt = task_prompt + examples
     return few_shot_prompt + "List of activities:\n"
 
@@ -54,7 +54,7 @@ def get_few_shot_prompt_pt(sample_df, n_samples, task_prompt, input_att):
     examples = "\nExamples:\n"
     for i, row in in_context_examples.iterrows():
         examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
-                     + "Process tree:\n" + row["pt"] + "\n")
+                     + "Process tree:\n" + row["pt"] + "\n[END]\n")
     few_shot_prompt = task_prompt + examples
     return few_shot_prompt + "List of activities:\n"
 
