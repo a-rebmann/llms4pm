@@ -39,7 +39,7 @@ def get_few_shot_prompt_dfg(sample_df, n_samples, task_prompt, input_att):
     for i, row in in_context_examples.iterrows():
         # create a pair list
         pair_list = ""
-        for pair in eval(row['dfg']):
+        for pair in row['dfg']:
             pair_list += f"{pair[0]} -> {pair[1]}\n"
         examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
                      + "Pairs of activities:\n" + pair_list + "\n")
