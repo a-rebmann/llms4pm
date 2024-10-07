@@ -144,6 +144,11 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     parsed = [x.split(" -> ") for x in parsed if " -> " in x]
     parsed = [(x[0], x[1]) for x in parsed]
     print(parsed)
+    try:
+        eval(parsed)
+    except Exception as e:
+        print(e)
+        return []
     return parsed
 
 def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt):
@@ -253,9 +258,16 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 # comute average fitness
                 fitness = []
                 for true, pred in zip(true_labels, predicted_labels):
-                    true_matrix = compute_footprint_matrix_pairs(true)
-                    pred_matrix = compute_footprint_matrix_pairs(pred)
-                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                    # make sure activities are the same
+                    true_matrix, act_true = compute_footprint_matrix_pairs(true)
+                    pred_matrix, act_pred = compute_footprint_matrix_pairs(pred)
+                    if act_true != act_pred:
+                        print("Activities are not the same")
+                        print(act_true)
+                        print(act_pred)
+                        fitness.append(0)
+                    else:
+                        fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
                 rec = {
                     "sample_size": sample_size,
                     "run": run,
@@ -266,10 +278,16 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 # compute average fitness
                 fitness = []
                 for true, pred in zip(true_labels, predicted_labels):
-                    true_matrix = compute_footprint_matrix(true)
+                    true_matrix, act_true = compute_footprint_matrix(true)
                     str_traces = generate_traces_from_tree(pred)
-                    pred_matrix = compute_footprint_matrix(str_traces)
-                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                    pred_matrix, act_pred = compute_footprint_matrix(str_traces)
+                    if act_true != act_pred:
+                        print("Activities are not the same")
+                        print(act_true)
+                        print(act_pred)
+                        fitness.append(0)
+                    else:
+                        fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
                 rec = {
                     "sample_size": sample_size,
                     "run": run,

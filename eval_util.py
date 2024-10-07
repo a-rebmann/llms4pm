@@ -48,10 +48,7 @@ def compute_footprint_matrix_pairs(pairs):
                 footprint_matrix[i][j] = footprint_matrix[j][i] = '‖'
             elif footprint_matrix[i][j] == '→' and footprint_matrix[j][i] == '#':
                 footprint_matrix[j][i] = '←'
-    
-    # Step 5: Convert matrix to a more readable format
-    activity_labels = list(activities)
-    return footprint_matrix, activity_labels
+    return footprint_matrix, activities
 
 
 def compute_footprint_fitness(matrix1, matrix2):
