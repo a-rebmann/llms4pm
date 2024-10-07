@@ -16,13 +16,13 @@ Provide either True or False as the answer and nothing else."""
 
 
 dfg_task_prompt = """Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
-Provide only a list of pairs and nothing else.
+Provide only a list of pairs and use only activities from the given list.
 """
 
 pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
 A process tree is a tree-like structure that represents the possible order and co-occurrence of activities in executions of this process. 
-There are four operands in a process tree: sequence (represented as ->), parallel (represented as +), loop (represented as *), and exclusive choice (represented as x).
-Provide the process tree as the answer and nothing else.
+There are four operands in a process tree: sequence (represented as ->), parallel (represented as +), loop (represented as *), and exclusive choice (represented as x). The leaves of the tree are always activities from the given list.
+Provide the process tree as the answer and use only activities from the given list as leaves.
 """
 
 traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.

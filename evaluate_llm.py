@@ -140,7 +140,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     print(decoded[0])
     # parse list of pars like 'A' -> 'B'\n 'C' -> 'D' into a list of tuples
     parsed = decoded[0].split("[END]")[0]
-    parsed = decoded[0].split("\n")
+    parsed = parsed.split("\n")
     parsed = [x.split(" -> ") for x in parsed if " -> " in x]
     parsed = [(x[0], x[1]) for x in parsed]
     print(parsed)
