@@ -246,7 +246,6 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     true_labels = val_df['string_traces']
             else:
                 raise NotImplemented
-            print("True parsed", true_labels.value_counts())
             predicted_labels = val_df['y']
 
             if task == DFG_GENERATION:
@@ -269,7 +268,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 for i, row in val_df.iterrows():
                     true_matrix = compute_footprint_matrix_pairs(row["pt"], row["unique_activities"])
                     str_traces = generate_traces_from_tree(row["y"], row["unique_activities"])
-                    pred_matrix = compute_footprint_matrix(str_traces)
+                    pred_matrix = compute_footprint_matrix(str_traces, row["unique_activities"])
                     fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
                 rec = {
                     "sample_size": sample_size,

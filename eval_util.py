@@ -28,11 +28,11 @@ def compute_footprint_matrix_pairs(pairs, activities):
     footprint_matrix = np.full((n, n), '#', dtype='<U2')  # Initialize with '#'
     
     # Map activities to indices
-    activity_idx = {activity: idx for idx, activity in enumerate(activities)}
+    activity_idx = {activity.strip(): idx for idx, activity in enumerate(activities)}
     
     # Step 3: Fill the matrix based on the pairs
     for a, b in pairs:
-        i, j = activity_idx[a], activity_idx[b]
+        i, j = activity_idx[a.strip()], activity_idx[b.strip()]
         footprint_matrix[i][j] = '→'  # A can follow B
     
     # Step 4: Identify concurrent and opposite flows
@@ -64,7 +64,7 @@ def parse_tree(tree_str):
     pass
 
 
-def generate_traces_from_tree(tree_str):
+def generate_traces_from_tree(tree_str, activities):
     # generate ProcessTree from string
     tree = parse_tree(tree_str)
     gen_tree = GenerationTree(tree)
