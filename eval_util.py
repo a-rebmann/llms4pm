@@ -32,8 +32,11 @@ def compute_footprint_matrix_pairs(pairs, activities):
     
     # Step 3: Fill the matrix based on the pairs
     for a, b in pairs:
-        i, j = activity_idx[a.strip()], activity_idx[b.strip()]
-        footprint_matrix[i][j] = '→'  # A can follow B
+        try:
+            i, j = activity_idx[a.strip()], activity_idx[b.strip()]
+            footprint_matrix[i][j] = '→'  # A can follow B
+        except KeyError:
+            print(f"Activity not found in the list: skipping {a} or {b}")
     
     # Step 4: Identify concurrent and opposite flows
     for i in range(n):
