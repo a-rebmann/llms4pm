@@ -1,4 +1,5 @@
 import pickle
+from statistics import mean
 import warnings
 import os
 import argparse
@@ -142,7 +143,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     parsed = decoded[0].split("[END]")[0]
     parsed = parsed.split("\n")
     parsed = [x.split(" -> ") for x in parsed if " -> " in x]
-    parsed = [(x[0], x[1]) for x in parsed]
+    parsed = [(x[0].strip(), x[1].strip()) for x in parsed]
     print(parsed)
     return parsed
 
@@ -252,17 +253,11 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
             if task == DFG_GENERATION:
                 # comute average fitness
                 fitness = []
-                for true, pred in zip(true_labels, predicted_labels):
+                for i, row in val_df.iterrows():
                     # make sure activities are the same
-                    true_matrix, act_true = compute_footprint_matrix_pairs(true)
-                    pred_matrix, act_pred = compute_footprint_matrix_pairs(pred)
-                    if act_true != act_pred:
-                        print("Activities are not the same")
-                        print(act_true)
-                        print(act_pred)
-                        fitness.append(0)
-                    else:
-                        fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                    true_matrix = compute_footprint_matrix_pairs(row["dfg"], row["unique_activities"])
+                    pred_matrix = compute_footprint_matrix_pairs(row["y"], row["unique_activities"])
+                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
                 rec = {
                     "sample_size": sample_size,
                     "run": run,
@@ -272,21 +267,15 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
             elif task == PT_GENERATION:
                 # compute average fitness
                 fitness = []
-                for true, pred in zip(true_labels, predicted_labels):
-                    true_matrix, act_true = compute_footprint_matrix(true)
-                    str_traces = generate_traces_from_tree(pred)
-                    pred_matrix, act_pred = compute_footprint_matrix(str_traces)
-                    if act_true != act_pred:
-                        print("Activities are not the same")
-                        print(act_true)
-                        print(act_pred)
-                        fitness.append(0)
-                    else:
-                        fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                for i, row in val_df.iterrows():
+                    true_matrix = compute_footprint_matrix_pairs(row["pt"], row["unique_activities"])
+                    str_traces = generate_traces_from_tree(row["y"], row["unique_activities"])
+                    pred_matrix = compute_footprint_matrix(str_traces)
+                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
                 rec = {
                     "sample_size": sample_size,
                     "run": run,
-                    "fitness": fitness,
+                    "fitness": mean(fitness),
                 }
             else:
                 # Compute precision, recall, and F1 score

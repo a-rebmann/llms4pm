@@ -20,13 +20,7 @@ def compute_footprint_matrix(sequences):
     return compute_footprint_matrix_pairs(pairs)
 
 
-def compute_footprint_matrix_pairs(pairs):
-    # Step 1: Extract unique activities
-    activities = set()
-    for a, b in pairs:
-        activities.add(a)
-        activities.add(b)
-    
+def compute_footprint_matrix_pairs(pairs, activities):    
     activities = sorted(activities)  # Sort to maintain order
     n = len(activities)
     
@@ -48,7 +42,7 @@ def compute_footprint_matrix_pairs(pairs):
                 footprint_matrix[i][j] = footprint_matrix[j][i] = '‖'
             elif footprint_matrix[i][j] == '→' and footprint_matrix[j][i] == '#':
                 footprint_matrix[j][i] = '←'
-    return footprint_matrix, activities
+    return footprint_matrix
 
 
 def compute_footprint_fitness(matrix1, matrix2):
