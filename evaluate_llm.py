@@ -230,7 +230,6 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                                                            this_prompt +
                                                            str(x["unique_activities"]) + "\nProcess tree:"),
                         axis=1)
-            print("Detected raw", val_df['y'].value_counts())
             # val_df['y'] = val_df['y'].apply(lambda x: True if x == 'True' else False)
             # print("Detected parsed", val_df['y'].value_counts())
             if input_att == "trace":
@@ -259,8 +258,9 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 rec = {
                     "sample_size": sample_size,
                     "run": run,
-                    "fitness": fitness,
+                    "fitness": mean(fitness),
                 }
+                print(fitness)
                 
             elif task == PT_GENERATION:
                 # compute average fitness
