@@ -130,7 +130,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     outputs = model.generate(
         input_ids=inputs["input_ids"],
         attention_mask=inputs["attention_mask"],
-        max_new_tokens=500,
+        max_new_tokens=200,
         return_dict_in_generate=True,
         output_scores=True,
     )
@@ -138,7 +138,6 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     generated_tokens = outputs.sequences[:, input_length:]
     decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
     print("-"*20)
-    print(decoded[0])
     # parse list of pars like 'A' -> 'B'\n 'C' -> 'D' into a list of tuples
     parsed = decoded[0].split("[END]")[0]
     parsed = parsed.split("\n")
