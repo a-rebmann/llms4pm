@@ -144,11 +144,6 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     parsed = [x.split(" -> ") for x in parsed if " -> " in x]
     parsed = [(x[0], x[1]) for x in parsed]
     print(parsed)
-    try:
-        eval(parsed)
-    except Exception as e:
-        print(e)
-        return []
     return parsed
 
 def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt):
