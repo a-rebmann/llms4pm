@@ -261,7 +261,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     "fitness": mean(fitness),
                 }
                 print(fitness)
-                
+                result_records.append(rec)
             elif task == PT_GENERATION:
                 # compute average fitness
                 fitness = []
@@ -275,6 +275,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     "run": run,
                     "fitness": mean(fitness),
                 }
+                result_records.append(rec)
             else:
                 # Compute precision, recall, and F1 score
                 precision_micro = precision_score(true_labels, predicted_labels, average='micro')
