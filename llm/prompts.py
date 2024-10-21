@@ -30,6 +30,18 @@ The activities in the sequence must be performed in the correct order for the ex
 Provide only a list of activitiy sequences as the answer and nothing else.
 """
 
+pt_description = """A process tree is a hierarchical process model.
+The following operators are defined for process trees:
+-> ( A, B ) tells that the process tree A should be executed before the process tree B
+X ( A, B ) tells that there is an exclusive choice between executing the process tree A or the process tree B
++ ( A, B ) tells that A and B are executed in true concurrency.
+* ( A, B ) is a loop. So the process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
+the leafs of a process tree are either activities (denoted by 'X' where X is the name of the activity) or silent steps (indicated by tau).
+An example process tree follows:
++ ( 'A', -> ( 'B', 'C' ) )
+tells that you should execute B before executing C. In true concurrency, you can execute A. So the possible traces are A->B->C, B->A->C, B->C->A.
+"""
+
 
 def get_few_shot_prompt_dfg(sample_df, n_samples, task_prompt, input_att):
     if n_samples == 0:
