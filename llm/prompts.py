@@ -20,9 +20,17 @@ Provide only a list of pairs and use only activities from the given list.
 """
 
 pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
-A process tree is a tree-like structure that represents the possible order and co-occurrence of activities in executions of this process. 
-There are four operands in a process tree: sequence (represented as ->), parallel (represented as +), loop (represented as *), and exclusive choice (represented as x). The leaves of the tree are always activities from the given list.
-Provide the process tree as the answer and use only activities from the given list as leaves.
+A process tree is a hierarchical process model.
+The following operators are defined for process trees:
+-> ( A, B ) tells that the process tree A should be executed before the process tree B
+x ( A, B ) tells that there is an exclusive choice between executing the process tree A or the process tree B
++ ( A, B ) tells that A and B are executed in true concurrency.
+* ( A, B ) is a loop. So the process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
+the leafs of a process tree are either activities (denoted by 'X' where X is the name of the activity) or silent steps (indicated by tau).
+An example process tree follows:
++ ( 'a', -> ( 'b', 'c' ) )
+tells that you should execute B before executing C. In true concurrency, you can execute A. So the possible traces are a->b->c, b->a->c, b->c->a.
+Provide the process tree in the format of the example as the answer and use only activities from the given list as leaf nodes and only the allowed operators as inner nodes.
 """
 
 traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
