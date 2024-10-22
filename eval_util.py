@@ -131,7 +131,6 @@ def convert_to_pm4py(current: TreeNode, parent: ProcessTree) -> ProcessTree:
 
 def rename_nodes(tree, letter_to_activity, activities):# rename the nodes to the original activity names
     for node in tree.children:
-        print(node.name)
         if node.name in letter_to_activity and node.name not in activities:
             node.name = letter_to_activity[node.name]
         rename_nodes(node, letter_to_activity, activities)
@@ -140,25 +139,21 @@ def rename_nodes(tree, letter_to_activity, activities):# rename the nodes to the
 
 
 def parse_tree(tree_str: str, activities: set[str]) -> ProcessTree:
+    print(tree_str)
+    print(activities)
     # relace all the activities with single letters
     activity_to_letter, letter_to_activity = map_activities_to_letters(activities)
     for activity, letter in activity_to_letter.items():
         if letter not in activities:
             tree_str = tree_str.replace(activity, letter)
-
     # remove whitespace
     tree_str = re.sub(r"\s+", "", tree_str)
     # remove quotes
     tree_str = tree_str.replace('"', "")
     tree_str = tree_str.replace("'", "")
-
     parsed_tree = parse_tree_str(tree_str)
-    print(parsed_tree)
     # rename the nodes to the original activity names
-
-
     parsed_tree = rename_nodes(parsed_tree, letter_to_activity, activities)
-
     # convert the parsed tree and return a ProcessTree object 
     return convert_to_pm4py(parsed_tree, ProcessTree(operator=None, label="tree"))
 
