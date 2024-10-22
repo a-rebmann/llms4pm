@@ -149,7 +149,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt) 
 def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -> str:
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
-    print(prompt)
+    #print(prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     outputs = model.generate(
         input_ids=inputs["input_ids"],
@@ -164,6 +164,7 @@ def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -
     parsed = decoded[0].split("[END]")[0]
     print("-"*20)
     print(parsed)
+    print("-"*20)
     return decoded[0]
 
 
