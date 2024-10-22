@@ -139,8 +139,6 @@ def rename_nodes(tree, letter_to_activity, activities):# rename the nodes to the
 
 
 def parse_tree(tree_str: str, activities: set[str]) -> ProcessTree:
-    print(tree_str)
-    print(activities)
     # relace all the activities with single letters
     activity_to_letter, letter_to_activity = map_activities_to_letters(activities)
     for activity, letter in activity_to_letter.items():

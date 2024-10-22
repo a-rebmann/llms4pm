@@ -154,7 +154,7 @@ def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -
     outputs = model.generate(
         input_ids=inputs["input_ids"],
         attention_mask=inputs["attention_mask"],
-        max_new_tokens=100,
+        max_new_tokens=150,
         return_dict_in_generate=True,
         output_scores=True,
     )
@@ -267,6 +267,10 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 # compute average fitness
                 fitness = []
                 for i, row in val_df.iterrows():
+                    print(row["pt"])
+                    print(row["y"])
+                    print(row["unique_activities"])
+
                     true_str_traces = generate_traces_from_tree(row["pt"], row["unique_activities"])
                     true_matrix = compute_footprint_matrix(true_str_traces, row["unique_activities"])
                     str_traces = generate_traces_from_tree(row["y"], row["unique_activities"])
