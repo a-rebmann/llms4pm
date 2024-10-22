@@ -165,7 +165,7 @@ def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -
     print("-"*20)
     print(parsed)
     print("-"*20)
-    return decoded[0]
+    return parsed
 
 
 def _get_act_list(list_of_activities):
