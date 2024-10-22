@@ -269,7 +269,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 for i, row in val_df.iterrows():
                     true_str_traces = generate_traces_from_tree(row["pt"], row["unique_activities"])
                     true_matrix = compute_footprint_matrix(true_str_traces, row["unique_activities"])
-                    str_traces = generate_traces_from_tree(parse_tree(row["y"], activities=row["unique_activities"]), row["unique_activities"])
+                    str_traces = generate_traces_from_tree(row["y"], row["unique_activities"])
                     pred_matrix = compute_footprint_matrix(str_traces, row["unique_activities"])
                     fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
                 rec = {
