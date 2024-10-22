@@ -242,7 +242,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 if task == DFG_GENERATION:
                     true_labels = val_df['dfg']
                 elif task == PT_GENERATION:
-                    true_labels = val_df['string_traces']
+                    true_labels = val_df['pt']
             else:
                 raise NotImplemented
             predicted_labels = val_df['y']
