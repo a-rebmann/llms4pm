@@ -63,7 +63,7 @@ def get_labelled_tokens(tokenizer, label_tokens: list[str]) -> list[int]:
     return out
 
 
-def generate_binary_output(model_name, device, model, tokenizer, prompt):
+def generate_binary_output(model_name, device, model, tokenizer, prompt) -> str:
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
     # print(prompt)
@@ -95,7 +95,7 @@ def generate_binary_output(model_name, device, model, tokenizer, prompt):
     return False  # tokenizer.decode(generated_tokens[0][0])
 
 
-def generate_activity_output(model_name, device, model, tokenizer, prompt, activities):
+def generate_activity_output(model_name, device, model, tokenizer, prompt, activities) -> str:
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
     #print(prompt)
@@ -122,7 +122,7 @@ def generate_activity_output(model_name, device, model, tokenizer, prompt, activ
     print(decoded[0], "does not contain any activity")
     return "[END]"
 
-def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
+def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt) -> str:
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
     print(prompt)
@@ -146,7 +146,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     print(parsed)
     return parsed
 
-def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt):
+def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -> str:
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
     print(prompt)
@@ -267,7 +267,8 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 # compute average fitness
                 fitness = []
                 for i, row in val_df.iterrows():
-                    true_matrix = compute_footprint_matrix(row["pt"], row["unique_activities"])
+                    true_str_traces = generate_traces_from_tree(row["pt"], row["unique_activities"])
+                    true_matrix = compute_footprint_matrix(true_str_traces, row["unique_activities"])
                     str_traces = generate_traces_from_tree(parse_tree(row["y"], activities=row["unique_activities"]), row["unique_activities"])
                     pred_matrix = compute_footprint_matrix(str_traces, row["unique_activities"])
                     fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
