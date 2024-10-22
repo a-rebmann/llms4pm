@@ -16,7 +16,7 @@ Provide either True or False as the answer and nothing else."""
 
 
 dfg_task_prompt = """Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
-Provide only a list of pairs and use only activities from the given list.
+Provide only a list of pairs and use only activities from the given list followed by [END].
 """
 
 pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
@@ -30,7 +30,7 @@ the leafs of a process tree are either activities (denoted by 'X' where X is the
 An example process tree follows:
 + ( 'a', -> ( 'b', 'c' ) )
 tells that you should execute B before executing C. In true concurrency, you can execute A. So the possible traces are a->b->c, b->a->c, b->c->a.
-Provide the process tree in the format of the example as the answer and use only activities from the given list as leaf nodes and only the allowed operators (->, X, +, *) as inner nodes.
+Provide the process tree in the format of the example as the answer followed by [END]. Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +, *) as inner nodes.
 """
 
 traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
