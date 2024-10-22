@@ -137,12 +137,12 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt):
     input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
     generated_tokens = outputs.sequences[:, input_length:]
     decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
-    print("-"*20)
     # parse list of pars like 'A' -> 'B'\n 'C' -> 'D' into a list of tuples
     parsed = decoded[0].split("[END]")[0]
     parsed = parsed.split("\n")
     parsed = [x.split(" -> ") for x in parsed if " -> " in x]
     parsed = [(x[0].strip(), x[1].strip()) for x in parsed]
+    print("-"*20)
     print(parsed)
     return parsed
 
@@ -162,6 +162,7 @@ def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt):
     generated_tokens = outputs.sequences[:, input_length:]
     decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
     parsed = decoded[0].split("[END]")[0]
+    print("-"*20)
     print(parsed)
     return decoded[0]
 

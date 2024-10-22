@@ -81,8 +81,8 @@ def parse_tree_str(tree_str):
     root_name = tree_str.split("(")[0].strip()
     # Extract the children values
     # Create the root node
-    root = TreeNode(name=root_name, node_type=root_name if root_name in ["+", "->", "x", "*"] else "activity") 
-    if root.name in ["+", "->", "x", "*"]:
+    root = TreeNode(name=root_name, node_type=root_name if root_name in ["+", "->", "X", "*"] else "activity") 
+    if root.name in ["+", "->", "X", "*"]:
         children_list = []
         # remove the outermost brackets and then check for subtrees, parts that are separated by commas and have balanced brackets
         tree_str = tree_str[len(root_name):-1]
@@ -114,7 +114,7 @@ def convert_to_pm4py(current: TreeNode, parent: ProcessTree) -> ProcessTree:
     elif current.name == "->":
         operator = Operator.SEQUENCE
         label = None
-    elif current.name == "x":
+    elif current.name == "X":
         operator = Operator.XOR
         label = None
     elif current.name == "*":
