@@ -269,7 +269,10 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 fitness = []
                 for i, row in val_df.iterrows():
                     print(row["pt"])
-                    print(row["y"])
+                    print("#"*20)
+                    # print without linebreaks
+                    print(row["y"].replace("\n", ""))   
+                    print("#"*20)   
                     print(row["unique_activities"])
 
                     true_str_traces = generate_traces_from_tree(row["pt"], row["unique_activities"])
