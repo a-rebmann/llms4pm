@@ -274,12 +274,12 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     if "*" in row["y"]:
                         print("loop in pred")
                         continue
-                    print(row["pt"])
-                    print("#"*20)
-                    # print without linebreaks
-                    print(row["y"].replace("\n", ""))   
-                    print("#"*20)   
-                    print(row["unique_activities"])
+                    # print(row["pt"])
+                    # print("#"*20)
+                    # # print without linebreaks
+                    # print(row["y"].replace("\n", ""))   
+                    # print("#"*20)   
+                    # print(row["unique_activities"])
 
                     true_str_traces = generate_traces_from_tree(row["pt"], row["unique_activities"])
                     true_matrix = compute_footprint_matrix(true_str_traces, row["unique_activities"])
