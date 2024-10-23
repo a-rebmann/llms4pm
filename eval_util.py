@@ -75,7 +75,7 @@ class TreeNode:
         self.children: list[TreeNode] = []
 
     def __repr__(self):
-        return f"{self.name} ({self.node_type}) - {self.children}"
+        return f"{self.name} - {self.children}"
 
 def parse_tree_str(tree_str):
     root_name = tree_str.split("(")[0].strip()
@@ -144,6 +144,7 @@ def parse_tree(tree_str: str, activities: set[str]) -> ProcessTree:
     for activity, letter in activity_to_letter.items():
         if letter not in activities:
             tree_str = tree_str.replace(activity, letter)
+    print(tree_str)
     # remove whitespace
     tree_str = re.sub(r"\s+", "", tree_str)
     # remove quotes
@@ -152,6 +153,7 @@ def parse_tree(tree_str: str, activities: set[str]) -> ProcessTree:
     parsed_tree = parse_tree_str(tree_str)
     # rename the nodes to the original activity names
     parsed_tree = rename_nodes(parsed_tree, letter_to_activity, activities)
+    print(parsed_tree)
     # convert the parsed tree and return a ProcessTree object 
     return convert_to_pm4py(parsed_tree, ProcessTree(operator=None, label="tree"))
 
