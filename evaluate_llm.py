@@ -268,6 +268,12 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 # compute average fitness
                 fitness = []
                 for i, row in val_df.iterrows():
+                    if "*" in row["pt"]:
+                        print("loop in gt")
+                        continue
+                    if "*" in row["y"]:
+                        print("loop in pred")
+                        continue
                     print(row["pt"])
                     print("#"*20)
                     # print without linebreaks
