@@ -86,9 +86,9 @@ def parse_tree_str(tree_str):
         children_list = []
         # remove the outermost brackets and then check for subtrees, parts that are separated by commas and have balanced brackets
         tree_str = tree_str[len(root_name):-1]
-        if tree_str[0] == "(":
+        if len(tree_str) > 0 and tree_str[0] == "(":
             tree_str = tree_str[1:]
-        if tree_str[-1] == ")":
+        if len(tree_str) > 0 and tree_str[-1] == ")":
             tree_str = tree_str[:]
         start = 0
         depth = 0
