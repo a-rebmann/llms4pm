@@ -184,6 +184,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
     if not input_att:
         input_att = "trace"
     result_records = []
+    individual_results = []
     for sample_size in prompt_sample_sizes:
         done = False
         for run in range(n_runs):
@@ -248,7 +249,6 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
             else:
                 raise NotImplemented
             predicted_labels = val_df['y']
-
             if task == DFG_GENERATION:
                 # comute average fitness
                 fitness = []
@@ -256,11 +256,20 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     # make sure activities are the same
                     true_matrix = compute_footprint_matrix_pairs(row["dfg"], row["unique_activities"])
                     pred_matrix = compute_footprint_matrix_pairs(row["y"], row["unique_activities"])
-                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                    current_fitness = compute_footprint_fitness(true_matrix, pred_matrix)
+                    fitness.append(current_fitness)
+                    individual_results.append({
+                        "sample_size": sample_size,
+                        "run": run,
+                        "fitness": current_fitness,
+                        "true": row["dfg"],
+                        "pred": row["y"],
+                        "unique_activities": row["unique_activities"]
+                    })
                 rec = {
                     "sample_size": sample_size,
                     "run": run,
-                    "fitness": mean(fitness),
+                    "avg_fitness": mean(fitness),
                 }
                 print(fitness)
                 result_records.append(rec)
@@ -285,11 +294,20 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     true_matrix = compute_footprint_matrix(true_str_traces, row["unique_activities"])
                     str_traces = generate_traces_from_tree(row["y"], row["unique_activities"])
                     pred_matrix = compute_footprint_matrix(str_traces, row["unique_activities"])
-                    fitness.append(compute_footprint_fitness(true_matrix, pred_matrix))
+                    current_fitness = compute_footprint_fitness(true_matrix, pred_matrix)
+                    fitness.append(current_fitness)
+                    individual_results.append({
+                        "sample_size": sample_size,
+                        "run": run,
+                        "fitness": current_fitness,
+                        "true": row["dfg"],
+                        "pred": row["y"],
+                        "unique_activities": row["unique_activities"]
+                    })
                 rec = {
                     "sample_size": sample_size,
                     "run": run,
-                    "fitness": mean(fitness),
+                    "avg_fitness": mean(fitness),
                 }
                 result_records.append(rec)
             else:
@@ -322,6 +340,8 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 print(rec)
                 result_records.append(rec)
             done = True
+    individual_results_df = pd.DataFrame(individual_results)
+    individual_results_df.to_csv(f"individual_results_{task}-{model_name}.csv", index=False)
     df = pd.DataFrame(result_records)
     return df
 
