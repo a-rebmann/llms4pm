@@ -22,14 +22,16 @@ Provide only a list of pairs and use only activities from the given list followe
 pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
 A process tree is a hierarchical process model.
 The following operators are defined for process trees:
--> ( A, B ) tells that the process tree A should be executed before the process tree B
-X ( A, B ) tells that there is an exclusive choice between executing the process tree A or the process tree B
-+ ( A, B ) tells that A and B are executed in true concurrency.
-the leafs of a process tree are either activities (denoted by 'X' where X is the name of the activity) or silent steps (indicated by tau).
+-> ( A, B ) tells that process tree A should be executed before process tree B
+X ( A, B ) tells that there is an exclusive choice between executing process tree A and process tree B
++ ( A, B ) tells that process tree A and process treee B are executed in true concurrency.
+the leafs of a process tree are either activities or silent steps (indicated by tau).
 An example process tree follows:
-+ ( 'a', -> ( 'b', 'c' ) )
-tells that you should execute B before executing C. In true concurrency, you can execute A. So the possible traces are a->b->c, b->a->c, b->c->a.
-Provide the process tree in the format of the example as the answer followed by [END]. Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +) as inner nodes. Also make sure each activity is used exactly once in the tree.
++ ( 'a', -> ( 'b', 'c', 'd' ) )
+It defines that you should execute b before executing c and c before d. In true concurrency to this, you can execute a. Therefore, the possible traces that this tree allows for are a->b->c->d, b->a->c->d, b->c->a->d, b->c->d->a.
+Provide the process tree in the format of the example as the answer followed by [END]. 
+Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +) as inner nodes. 
+Also make sure each activity is used exactly once in the tree and there and each subtree has exactly one root node, i.e., pay attention to set parantheses correctly.
 """
 
 traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
