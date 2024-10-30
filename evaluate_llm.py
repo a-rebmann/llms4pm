@@ -343,7 +343,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
             done = True
     individual_results_df = pd.DataFrame(individual_results)
     individual_results_df.to_csv(EVAL_PATH /
-                  (model.replace("/", "-")
+                  (model_name.replace("/", "-")
                    + task + "_" + prompt_sample_sizes.replace("[", "").replace("]", "").replace(", ", "_")
                    + "_samples_per_class" + str(len(val_df)) + "_runs" + str(n_runs) + str(
                               general_task_prompt_order[-10:])
