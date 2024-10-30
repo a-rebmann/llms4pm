@@ -1,4 +1,5 @@
 import pickle
+import re
 from statistics import mean
 import time
 import warnings
@@ -302,7 +303,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                         "run": run,
                         "fitness": current_fitness,
                         "true": row["dfg"],
-                        "pred": row["y"],
+                        "pred": re.sub(r"\s+", "", row["y"]),
                         "unique_activities": row["unique_activities"]
                     })
                 rec = {
