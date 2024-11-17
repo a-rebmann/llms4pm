@@ -17,7 +17,9 @@ anomaly_types = {
 
 GPT_MODEL = "gpt-3.5-turbo"
 LLAMA_2_MODEL = "meta-llama/Llama-2-7b-chat-hf"
+
 LLAMA_3_MODEL = "meta-llama/Meta-Llama-3-8B-Instruct"
+LLAMA_3_SMALL = "meta-llama/Llama-3.2-1B-Instruct"
 MISTRAL_MODEL = "mistralai/Mistral-7B-Instruct-v0.2"
 GEMMA_MODEL = "google/gemma-7b-it"
 

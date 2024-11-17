@@ -6,6 +6,33 @@ from pm4py.objects.process_tree.obj import Operator
 from uuid import uuid4
 
 
+def camel_to_white(label):
+    label = CAMEL_PATTERN_1.sub(r"\1 \2", label)
+    return CAMEL_PATTERN_2.sub(r"\1 \2", label)
+
+
+NON_ALPHANUM = re.compile("[^a-zA-Z]")
+CAMEL_PATTERN_1 = re.compile("(.)([A-Z][a-z]+)")
+CAMEL_PATTERN_2 = re.compile("([a-z0-9])([A-Z])")
+
+
+def sanitize_label(label):
+    # handle some special cases
+    label = str(label)
+    if "&" in label:
+        label = label.replace("&", "and")
+    label = label.replace("\n", " ").replace("\r", "")
+    label = label.replace("(s)", "s")
+    label = label.replace("'", "")
+    label = re.sub(" +", " ", label)
+    label = label.strip()
+    # handle camel case
+    label = camel_to_white(label)
+    # delete unnecessary whitespaces
+    label = re.sub("\s{1,}", " ", label)
+    return label
+
+
 def extract_directly_follows_pairs(sequences):
     directly_follows_pairs = set()  # Use a set to avoid duplicate pairs
 

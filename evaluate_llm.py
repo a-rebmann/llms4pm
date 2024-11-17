@@ -14,7 +14,7 @@ import torch
 from transformers import (
     AutoModelForCausalLM,
     BitsAndBytesConfig,
-    AutoTokenizer, MixtralForCausalLM,
+    AutoTokenizer, 
 )
 from sklearn.metrics import precision_score, recall_score, f1_score
 from sklearn.metrics import precision_recall_fscore_support
@@ -302,7 +302,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                         "sample_size": sample_size,
                         "run": run,
                         "fitness": current_fitness,
-                        "true": row["dfg"],
+                        "true": row["pt"],
                         "pred": re.sub(r"\s+", "", row["y"]),
                         "unique_activities": row["unique_activities"]
                     })
@@ -360,7 +360,7 @@ bnb_config = (BitsAndBytesConfig(
 
 
 def get_pair_data(samples_per_class, with_trace=False):
-    pair_df = pd.read_pickle(EVAL_PATH / "eval_train_data_pairs_balanced.pkl")
+    pair_df = pd.read_csv(EVAL_PATH / "A_SAD.csv")
     pair_df["unique_activities"] = pair_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     if not with_trace:
         pair_df = pair_df.drop_duplicates(subset=["revision_id", "model_id", "eventually_follows"])
@@ -383,9 +383,9 @@ def get_pair_data(samples_per_class, with_trace=False):
 
 
 def get_trace_data(samples_per_class):
-    trace_df = pd.read_pickle(EVAL_PATH / "eval_train_data_traces_balanced.pkl")
+    trace_df = pd.read_csv(EVAL_PATH / "T_SAD.csv")
     trace_df["unique_activities"] = trace_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
-    trace_df["anomalous"] = trace_df.progress_apply(lambda x: len(x["label"]) > 0, axis=1)
+    #trace_df["anomalous"] = trace_df.progress_apply(lambda x: len(x["label"]) > 0, axis=1)
     # Split
     trace_train_df, trace_val_df, trace_test_df = split_by_model(trace_df)
     # Sample data to have equal number of positive and negative samples
@@ -405,8 +405,9 @@ def get_trace_data(samples_per_class):
 
 
 def get_prefix_data(samples_per_class):
-    prefix_df = pd.read_pickle(EVAL_PATH / "eval_train_prefix_data.pkl")
+    prefix_df = pd.read_csv(EVAL_PATH / "S_NAP.csv")
     prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
+    prefix_df["next"] = prefix_df["next"].astype(str)
     prefix_df = prefix_df[~prefix_df["next"].str.contains("END")]
     prefix_df["prefix"] = prefix_df["prefix"].apply(lambda x: tuple(x))
     prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: tuple(x))
@@ -430,7 +431,7 @@ def get_discovery_data(samples_per_class):
 
 
 def main():
-    os.environ["HUGGINGFACE_HUB_CACHE"] = "/home/ubuntu/.chache/"
+    os.environ["HUGGINGFACE_HUB_CACHE"] = "/home/ubuntu/.chache/" # TODO ADJUST THIS TO YOUR SYSTEM!
     parser = argparse.ArgumentParser(description='A simple command line interface')
     parser.add_argument('task', choices=TASKS, help='The task to run')
     parser.add_argument('device', help='Device to use (e.g. cuda:1)')
@@ -446,30 +447,30 @@ def main():
     samples_per_class = int(args.samples_per_class)
 
     if args.task == OUT_OF_ORDER:
-        train_df, val_df, test_df = get_pair_data(samples_per_class)
+        train_df, _, test_df = get_pair_data(samples_per_class)
         input_att = "eventually_follows"
         task_prompt = general_task_prompt_order
         get_few_shot_prompt = get_few_shot_prompt_pairs
     elif args.task == TRACE_ANOMALY:
-        train_df, val_df, test_df = get_trace_data(samples_per_class)
+        train_df, _, test_df = get_trace_data(samples_per_class)
         input_att = "trace"
         task_prompt = general_task_prompt
         get_few_shot_prompt = get_few_shot_prompt_traces
     elif args.task ==NEXT_ACTIVITY:
         print("next activity prediction. samples per class will be ignored")
-        train_df, val_df, test_df = get_prefix_data(samples_per_class)
+        train_df, _, test_df = get_prefix_data(samples_per_class)
         input_att = "next"
         task_prompt = next_activity_prompt
         get_few_shot_prompt = get_few_shot_prompt_prefix
     elif args.task == DFG_GENERATION:
         print("discovery. samples per class will be ignored")
-        train_df, val_df, test_df = get_discovery_data(samples_per_class)
+        train_df, _, test_df = get_discovery_data(samples_per_class)
         input_att = "unique_activities"
         task_prompt = dfg_task_prompt
         get_few_shot_prompt = get_few_shot_prompt_dfg
     elif args.task == PT_GENERATION:
         print("discovery. samples per class will be ignored")
-        train_df, val_df, test_df = get_discovery_data(samples_per_class)
+        train_df, _, test_df = get_discovery_data(samples_per_class)
         input_att = "unique_activities"
         task_prompt = pt_task_prompt
         get_few_shot_prompt = get_few_shot_prompt_pt
