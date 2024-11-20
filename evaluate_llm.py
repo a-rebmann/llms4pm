@@ -77,14 +77,6 @@ def generate_binary_output(model_name, device, model, tokenizer, prompt) -> str:
         return_dict_in_generate=True,
         output_scores=True,
     )
-    first_token_probs = outputs.scores[0][0]
-    true = tokenizer("True")["input_ids"][1]
-    false = tokenizer("False")["input_ids"][1]
-    # option_scores = (
-    #     first_token_probs[[true, false]].float().cpu().numpy()
-    # )  # True, False
-    # print(option_scores)
-    # pred = np.array(["True", "False"])[np.argsort(option_scores)[::-1][:1]]
     input_length = 1 if model.config.is_encoder_decoder else inputs.input_ids.shape[1]
     generated_tokens = outputs.sequences[:, input_length:]
     decoded = tokenizer.batch_decode(generated_tokens, skip_special_tokens=True)
@@ -94,7 +86,7 @@ def generate_binary_output(model_name, device, model, tokenizer, prompt) -> str:
         return False
     print(decoded[0], "neither True nor False")
     print(tokenizer.decode(generated_tokens[0][0]))
-    return False  # tokenizer.decode(generated_tokens[0][0])
+    return False  
 
 
 def generate_activity_output(model_name, device, model, tokenizer, prompt, activities) -> str:
@@ -151,7 +143,7 @@ def generate_dfg_discovery_output(model_name, device, model, tokenizer, prompt) 
 def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -> str:
     if model_name == MISTRAL_MODEL:
         prompt = "[INST]" + prompt + "[/INST]"
-    #print(prompt)
+    print(prompt)
     inputs = tokenizer(prompt, return_tensors="pt").to(device)
     outputs = model.generate(
         input_ids=inputs["input_ids"],
