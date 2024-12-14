@@ -21,13 +21,9 @@ Provide only a list of pairs and use only activities from the given list followe
 - S-PTD: Given a list of activities that constitute an organizational process, determine the process tree of the process.
 A process tree is a hierarchical process model.
 The following operators are defined for process trees:
--> ( A, B ) tells that process tree A should be executed before process tree B
-X ( A, B ) tells that there is an exclusive choice between executing process tree A and process tree B
-+ ( A, B ) tells that process tree A and process treee B are executed in true concurrency.
-* ( A, B ) tells that process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
+-> ( A, B ) tells that process tree A should be executed before process tree B\nX ( A, B ) tells that there is an exclusive choice between executing process tree A and process tree B\n+ ( A, B ) tells that process tree A and process treee B are executed in true concurrency.\n* ( A, B ) tells that process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
 the leafs of a process tree are either activities or silent steps (indicated by tau).
-An example process tree follows:
-+ ( 'a', -> ( 'b', 'c', 'd' ) )
+An example process tree follows:\n+ ( 'a', -> ( 'b', 'c', 'd' ) )
 It defines that you should execute b before executing c and c before d. In true concurrency to this, you can execute a. Therefore, the possible traces that this tree allows for are a->b->c->d, b->a->c->d, b->c->a->d, b->c->d->a.
 Provide the process tree in the format of the example as the answer followed by [END]. 
 Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +, *) as inner nodes. 
