@@ -5,7 +5,7 @@ This repository contains the evaluation scripts and results as described in the 
 <i>On the potential of LLMs to solve semantics-ware process mining tasks</i> submitted to Process Science.
 
 ## Data
-The corpus and datasets can be downloaded from here: [datasets](https://zenodo.org/records/11276246)
+The corpus and datasets can be downloaded from here: [datasets](https://zenodo.org/records/14273161)
 
 ### ICL task descriptions (taken from llm/prompts.py)
 - T-SAD: Given a set of activities that constitute an organizational process and a sequence of activities, determine whether the sequence is a valid execution of the process. 
