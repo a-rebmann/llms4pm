@@ -15,6 +15,62 @@ general_task_prompt_order = """You are given a set of activities that constitute
 Provide either True or False as the answer and nothing else."""
 
 
+dfg_task_prompt = """Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
+Provide only a list of pairs and use only activities from the given list followed by [END].
+"""
+
+pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
+A process tree is a hierarchical process model.
+The following operators are defined for process trees:
+-> ( A, B ) tells that process tree A should be executed before process tree B
+X ( A, B ) tells that there is an exclusive choice between executing process tree A and process tree B
++ ( A, B ) tells that process tree A and process treee B are executed in true concurrency.
+* ( A, B ) tells that process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
+the leafs of a process tree are either activities or silent steps (indicated by tau).
+An example process tree follows:
++ ( 'a', -> ( 'b', 'c', 'd' ) )
+It defines that you should execute b before executing c and c before d. In true concurrency to this, you can execute a. Therefore, the possible traces that this tree allows for are a->b->c->d, b->a->c->d, b->c->a->d, b->c->d->a.
+Provide the process tree in the format of the example as the answer followed by [END]. 
+Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +, *) as inner nodes. 
+Also make sure each activity is used exactly once in the tree and there and each subtree has exactly one root node, i.e., pay attention to set parentheses correctly.
+"""
+
+traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
+The activities in the sequence must be performed in the correct order for the execution to be valid.
+Provide only a list of activitiy sequences as the answer and nothing else.
+"""
+
+loops = """* ( A, B ) is a loop. So the process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited)."""
+
+
+def get_few_shot_prompt_dfg(sample_df, n_samples, task_prompt, input_att):
+    if n_samples == 0:
+        return task_prompt + "List of activities: " + str(row['unique_activities']) + "\n"
+    in_context_examples = sample_df.sample(n=n_samples)
+    examples = "\nExamples:\n"
+    for i, row in in_context_examples.iterrows():
+        # create a pair list
+        pair_list = ""
+        for pair in row['dfg']:
+            pair_list += f"{pair[0]} -> {pair[1]}\n"
+        examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
+                     + "Pairs of activities:\n" + pair_list + "\n[END]\n")
+    few_shot_prompt = task_prompt + examples
+    return few_shot_prompt + "List of activities:\n"
+
+
+def get_few_shot_prompt_pt(sample_df, n_samples, task_prompt, input_att):
+    if n_samples == 0:
+        return task_prompt + "List of activities: " + str(row['unique_activities']) + "\n"
+    in_context_examples = sample_df.sample(n=n_samples)
+    examples = "\nExamples:\n"
+    for i, row in in_context_examples.iterrows():
+        examples += ("List of activities:\n" + str(row['unique_activities']) + "\n"
+                     + "Process tree:\n" + row["pt"] + "\n[END]\n")
+    few_shot_prompt = task_prompt + examples
+    return few_shot_prompt + "List of activities:\n"
+
+
 def get_few_shot_prompt_prefix(sample_df, n_samples, task_prompt, input_att):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     if n_samples == 0:

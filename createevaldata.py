@@ -171,7 +171,7 @@ def create_eval_data(df):
 
 
 if __name__ == "__main__":
-    model_df = pd.read_csv(DATA_ROOT / "basic_cleaned_corpus.csv")
+    model_df = pd.read_csv(DATA_ROOT / "process_behavior_corpus.csv")
     model_df["string_traces"] = model_df["string_traces"].apply(eval)
     create_eval_data(model_df)
     create_pair_data(model_df)
