@@ -2,7 +2,7 @@
 
 ## About
 This repository contains the evaluation scripts and results as described in the manuscript
-<i>Evaluating the Ability of LLMs to Solve Semantics-Aware Process Mining Tasks</i> submitted to ICPM 2024.
+<i>On the potential of LLMs to solve semantics-ware process mining tasks</i> submitted to Process Science.
 
 ## Data
 The corpus and datasets can be downloaded from here: [datasets](https://zenodo.org/records/11276246)
