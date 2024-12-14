@@ -16,23 +16,6 @@ CAMEL_PATTERN_1 = re.compile("(.)([A-Z][a-z]+)")
 CAMEL_PATTERN_2 = re.compile("([a-z0-9])([A-Z])")
 
 
-def sanitize_label(label):
-    # handle some special cases
-    label = str(label)
-    if "&" in label:
-        label = label.replace("&", "and")
-    label = label.replace("\n", " ").replace("\r", "")
-    label = label.replace("(s)", "s")
-    label = label.replace("'", "")
-    label = re.sub(" +", " ", label)
-    label = label.strip()
-    # handle camel case
-    label = camel_to_white(label)
-    # delete unnecessary whitespaces
-    label = re.sub("\s{1,}", " ", label)
-    return label
-
-
 def extract_directly_follows_pairs(sequences):
     directly_follows_pairs = set()  # Use a set to avoid duplicate pairs
 
@@ -59,12 +42,12 @@ def compute_footprint_matrix_pairs(pairs, activities):
     footprint_matrix = np.full((n, n), '#', dtype='<U2')  # Initialize with '#'
     
     # Map activities to indices
-    activity_idx = {activity.strip(): idx for idx, activity in enumerate(activities)}
+    activity_idx = {activity: idx for idx, activity in enumerate(activities)}
     
     # Step 3: Fill the matrix based on the pairs
     for a, b in pairs:
         try:
-            i, j = activity_idx[a.strip()], activity_idx[b.strip()]
+            i, j = activity_idx[a], activity_idx[b]
             footprint_matrix[i][j] = '→'  # A can follow B
         except KeyError:
             print(f"Activity not found in the list: skipping {a} or {b}")
@@ -171,8 +154,6 @@ def parse_tree(tree_str: str, activities: set[str]) -> ProcessTree:
     for activity, letter in activity_to_letter.items():
         if letter not in activities:
             tree_str = tree_str.replace(activity, letter)
-    # remove whitespace
-    tree_str = re.sub(r"\s+", "", tree_str)
     # remove quotes
     tree_str = tree_str.replace('"', "")
     tree_str = tree_str.replace("'", "")

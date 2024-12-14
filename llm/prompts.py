@@ -25,13 +25,14 @@ The following operators are defined for process trees:
 -> ( A, B ) tells that process tree A should be executed before process tree B
 X ( A, B ) tells that there is an exclusive choice between executing process tree A and process tree B
 + ( A, B ) tells that process tree A and process treee B are executed in true concurrency.
+* ( A, B ) tells that process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
 the leafs of a process tree are either activities or silent steps (indicated by tau).
 An example process tree follows:
 + ( 'a', -> ( 'b', 'c', 'd' ) )
 It defines that you should execute b before executing c and c before d. In true concurrency to this, you can execute a. Therefore, the possible traces that this tree allows for are a->b->c->d, b->a->c->d, b->c->a->d, b->c->d->a.
 Provide the process tree in the format of the example as the answer followed by [END]. 
-Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +) as inner nodes. 
-Also make sure each activity is used exactly once in the tree and there and each subtree has exactly one root node, i.e., pay attention to set parantheses correctly.
+Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +, *) as inner nodes. 
+Also make sure each activity is used exactly once in the tree and there and each subtree has exactly one root node, i.e., pay attention to set parentheses correctly.
 """
 
 traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.

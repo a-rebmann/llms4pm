@@ -21,7 +21,7 @@ from sklearn.metrics import precision_recall_fscore_support
 
 from const import MISTRAL_MODEL, EVAL_PATH, TASKS, DFG_GENERATION, NEXT_ACTIVITY, OUT_OF_ORDER, \
     TRACE_ANOMALY, PT_GENERATION
-from eval_util import compute_footprint_fitness, compute_footprint_matrix_pairs, generate_traces_from_tree, compute_footprint_matrix, parse_tree
+from eval_util import compute_footprint_fitness, compute_footprint_matrix_pairs, generate_traces_from_tree, compute_footprint_matrix
 from llm.prompts import general_task_prompt_order, get_few_shot_prompt_pairs, general_task_prompt, \
     get_few_shot_prompt_traces, get_few_shot_prompt_prefix, next_activity_prompt, dfg_task_prompt, \
     get_few_shot_prompt_dfg, pt_task_prompt, get_few_shot_prompt_pt
@@ -277,16 +277,11 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     if "*" in row["y"]:
                         print("loop in pred")
                         continue
-                    # print(row["pt"])
-                    # print("#"*20)
-                    # # print without linebreaks
-                    # print(row["y"].replace("\n", ""))   
-                    # print("#"*20)   
-                    # print(row["unique_activities"])
-
-                    true_str_traces = generate_traces_from_tree(row["pt"], row["unique_activities"])
+                    true_tree = row["pt"].replace("\n", " ")
+                    pred_tree = row["y"].replace("\n", " ")
+                    true_str_traces = generate_traces_from_tree(true_tree, row["unique_activities"])
                     true_matrix = compute_footprint_matrix(true_str_traces, row["unique_activities"])
-                    str_traces = generate_traces_from_tree(row["y"], row["unique_activities"])
+                    str_traces = generate_traces_from_tree(pred_tree, row["unique_activities"])
                     pred_matrix = compute_footprint_matrix(str_traces, row["unique_activities"])
                     current_fitness = compute_footprint_fitness(true_matrix, pred_matrix)
                     fitness.append(current_fitness)
@@ -417,6 +412,8 @@ def get_discovery_data(samples_per_class):
     dfg_df["unique_activities"] = dfg_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     dfg_df["dfg"] = dfg_df["dfg"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     dfg_train_df, dfg_val_df, dfg_test_df = split_by_model(dfg_df)
+    if samples_per_class == 0:
+        return dfg_train_df, dfg_val_df, dfg_test_df
     dfg_val_df = dfg_val_df.sample(n=samples_per_class * 2, random_state=4)
     dfg_test_df = dfg_test_df.sample(n=samples_per_class * 2, random_state=4)
     return dfg_train_df, dfg_val_df, dfg_test_df
