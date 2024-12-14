@@ -16,9 +16,26 @@ Provide either True or False as the answer and nothing else.Y
 - S-NAP: You are given a list of activities that constitute an organizational process and a sequence of activities that have been performed in the given order.
 Which activity from the list should be performed next in the sequence? 
 The answer should be one activity from the list and nothing else.
+- S-DFD: Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
+Provide only a list of pairs and use only activities from the given list followed by [END].
+- S-PTD: Given a list of activities that constitute an organizational process, determine the process tree of the process.
+A process tree is a hierarchical process model.
+The following operators are defined for process trees:
+-> ( A, B ) tells that process tree A should be executed before process tree B
+X ( A, B ) tells that there is an exclusive choice between executing process tree A and process tree B
++ ( A, B ) tells that process tree A and process treee B are executed in true concurrency.
+* ( A, B ) tells that process tree A is executed, then either you exit the loop, or you execute B and then A again (this can happen several times until the loop is exited).
+the leafs of a process tree are either activities or silent steps (indicated by tau).
+An example process tree follows:
++ ( 'a', -> ( 'b', 'c', 'd' ) )
+It defines that you should execute b before executing c and c before d. In true concurrency to this, you can execute a. Therefore, the possible traces that this tree allows for are a->b->c->d, b->a->c->d, b->c->a->d, b->c->d->a.
+Provide the process tree in the format of the example as the answer followed by [END]. 
+Use only activities from the given list as leaf nodes and only the allowed operators (->, X, +, *) as inner nodes. 
+Also make sure each activity is used exactly once in the tree and there and each subtree has exactly one root node, i.e., pay attention to set parentheses correctly.
+
 
 ## Results
-The results of the experiments can be found in the 'eval/' folder. They are stored in a .csv file 
+The results of the experiments can be found in the 'eval/' folder. 
 
 ## Running the Experiments
 ### Hardware Requirements
@@ -66,6 +83,8 @@ https://github.com/fdschmidt93/trident-bpm
     - 'pair.sh' for A-SAD using LLMs
     - 'trace.sh' for T-SAD using LLMs
     - 'activity.sh' for S-NAP using LLMs
+    - 'next_activity.sh' for S-DFD using LLMs (sorry for the strage naming...)
+    - 'pt.sh' for S-PTD using LLMs
     - 'trace_activity.sh' for multi-task T-SAD and S-NAP using LLMs
     - 'pair_roberta.sh' for A-SAD using RoBERTa
     - 'trace_roberta.sh' for T-SAD using RoBERTa
