@@ -85,7 +85,7 @@ def get_few_shot_prompt_prefix(sample_df, n_samples, task_prompt, input_att):
             act_list += f"{alphabet[idx]}. {act}\n"
 
         examples += ("List of activities:\n" + act_list + "\n"
-                     + "Sequence of activities:" + str(row['prefix']) + "\n"
+                     + "Sequence of activities: " + str(row['prefix']) + "\n"
                      + f"Answer: {alphabet[list_of_activities.index(row['next'])] if row['next'] != '[END]' else '0'}\n\n")
     few_shot_prompt = task_prompt + examples
     return few_shot_prompt + "List of activities:\n"
