@@ -88,33 +88,34 @@ class TreeNode:
         return f"{self.name} - {self.children}"
 
 def parse_tree_str(tree_str):
-    root_name = tree_str.split("(")[0].strip()
-    # Extract the children values
-    # Create the root node
-    root = TreeNode(name=root_name, node_type=root_name if root_name in ["+", "->", "X", "*"] else "activity") 
-    if root.name in ["+", "->", "X", "*"]:
-        children_list = []
-        # remove the outermost brackets and then check for subtrees, parts that are separated by commas and have balanced brackets
-        tree_str = tree_str[len(root_name):-1]
-        if len(tree_str) > 0 and tree_str[0] == "(":
-            tree_str = tree_str[1:]
-        if len(tree_str) > 0 and tree_str[-1] == ")":
-            tree_str = tree_str[:]
-        start = 0
-        depth = 0
-        for i, c in enumerate(tree_str):
-            if c == "(":
-                depth += 1
-            elif c == ")":
-                depth -= 1
-            elif c == "," and depth == 0:
-                children_list.append(tree_str[start:i])
-                start = i + 1
-        children_list.append(tree_str[start:])
-        for child in children_list:
-            root.children.append(parse_tree_str(child))
-    return root
+    match = re.match(r"([+\-*X>]+)\s*\((.*)\)", tree_str.strip())
+    
+    if not match:
+        return TreeNode(name=tree_str.strip(), node_type="activity")
 
+    root_name, children_str = match.groups()
+
+    if root_name not in ["+", "->", "X", "*"]:
+        return TreeNode(name=root_name, node_type="activity")
+
+    root = TreeNode(name=root_name, node_type=root_name)
+
+    children_list = []
+    start, depth = 0, 0
+    for i, c in enumerate(children_str):
+        if c == "(":
+            depth += 1
+        elif c == ")":
+            depth -= 1
+        elif c == "," and depth == 0:
+            children_list.append(children_str[start:i].strip())
+            start = i + 1
+
+    children_list.append(children_str[start:].strip())
+    for child in children_list:
+        root.children.append(parse_tree_str(child))
+
+    return root
 
 def convert_to_pm4py(current: TreeNode, parent: ProcessTree) -> ProcessTree:
     # node
