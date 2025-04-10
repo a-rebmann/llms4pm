@@ -164,3 +164,6 @@ cython_debug/
 .DS_Store
 
 *.csv
+.env
+
+*ing.ipynb

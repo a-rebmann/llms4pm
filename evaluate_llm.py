@@ -163,7 +163,7 @@ def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -
     return parsed
 
 
-def _get_act_list(list_of_activities):
+def get_act_list(list_of_activities):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     act_list = "0. [END]\n"
     for idx, act in enumerate(list_of_activities):

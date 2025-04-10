@@ -11,3 +11,5 @@ accelerate
 langdetect
 scikit-learn
 datasets
+baml
+python-dotenv
