@@ -162,7 +162,7 @@ def generate_pt_discovery_output(model_name, device, model, tokenizer, prompt) -
     return parsed
 
 
-def _get_act_list(list_of_activities):
+def get_act_list(list_of_activities):
     alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
     act_list = "0. [END]\n"
     for idx, act in enumerate(list_of_activities):
@@ -209,7 +209,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 val_df["y"] = val_df.progress_apply(
                     lambda x: generate_activity_output(model_name, device, model, tokenizer,
                                                        this_prompt +
-                                                       _get_act_list(x["unique_activities"]) + "\n"
+                                                        get_act_list(x["unique_activities"]) + "\n"
                                                        + "Sequence of activities:" + str(
                                                            x["prefix"]) + "\nAnswer:",
                                                        activities=list(x["unique_activities"])),

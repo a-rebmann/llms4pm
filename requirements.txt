@@ -12,3 +12,4 @@ langdetect
 scikit-learn
 datasets
 baml
+python-dotenv

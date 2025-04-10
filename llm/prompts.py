@@ -1,6 +1,7 @@
 import numpy as np
 
-general_task_prompt = """Given a set of activities that constitute an organizational process and a sequence of activities, determine whether the sequence is a valid execution of the process. 
+general_task_prompt = """
+Given a set of activities that constitute an organizational process and a sequence of activities, determine whether the sequence is a valid execution of the process. 
 The activities in the sequence must be performed in the correct order for the execution to be valid.
 Provide either True or False as the answer and nothing else.
 """
@@ -11,15 +12,19 @@ Which activity from the list should be performed next in the sequence?
 The answer should be one activity from the list and nothing else.
 """
 
-general_task_prompt_order = """You are given a set of activities that constitute an organizational process and two activities performed in a single process execution. Determine whether it is valid for the first activity to occur before the second. 
-Provide either True or False as the answer and nothing else."""
+general_task_prompt_order = """
+You are given a set of activities that constitute an organizational process and two activities performed in a single process execution. Determine whether it is valid for the first activity to occur before the second. 
+Provide either True or False as the answer and nothing else.
+"""
 
 
-dfg_task_prompt = """Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
+dfg_task_prompt = """
+Given a list of activities that constitute an organizational process, determine all pairs of activities that can reasonably follow each other directly in an execution of this process.
 Provide only a list of pairs and use only activities from the given list followed by [END].
 """
 
-pt_task_prompt = """Given a list of activities that constitute an organizational process, determine the process tree of the process.
+pt_task_prompt = """
+Given a list of activities that constitute an organizational process, determine the process tree of the process.
 A process tree is a hierarchical process model.
 The following operators are defined for process trees:
 -> ( A, B ) tells that process tree A should be executed before process tree B
@@ -35,7 +40,8 @@ Use only activities from the given list as leaf nodes and only the allowed opera
 Also make sure each activity is used exactly once in the tree and there and each subtree has exactly one root node, i.e., pay attention to set parentheses correctly.
 """
 
-traces_task_prompt = """Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
+traces_task_prompt = """
+Given a list of activities that constitute an organizational process, provide all possible sequences of activities, where each sequence represents a valid execution of the process.
 The activities in the sequence must be performed in the correct order for the execution to be valid.
 Provide only a list of activitiy sequences as the answer and nothing else.
 """
