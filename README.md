@@ -90,4 +90,4 @@ https://github.com/fdschmidt93/trident-bpm
 
 
 ## Use with your own examples
-We provide a (notebook)[https://github.com/a-rebmann/llms4pm/blob/main/use_models.ipynb] that explains how to solve instances of the five tasks with a selected LLM.
+We provide a [notebook](https://github.com/a-rebmann/llms4pm/blob/main/use_models.ipynb) that explains how to solve instances of the five tasks with a selected LLM.
