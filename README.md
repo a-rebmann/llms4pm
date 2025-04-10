@@ -86,3 +86,8 @@ https://github.com/fdschmidt93/trident-bpm
     - 'trace_roberta.sh' for T-SAD using RoBERTa
     - 'activity_roberta.sh' for S-NAP using RoBERTa
     - 'trace_activity_roberta.sh' for multi-task T-SAD and S-NAP using RoBERTa
+    - 
+
+
+## Use with your own examples
+We provide a [notebook](https://github.com/a-rebmann/llms4pm/blob/main/use_models.ipynb) that explains how to solve instances of the five tasks with a selected LLM.
