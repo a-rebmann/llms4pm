@@ -166,4 +166,4 @@ cython_debug/
 *.csv
 .env
 
-*ing.ipynb
+in*ing.ipynb
