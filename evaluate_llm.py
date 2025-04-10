@@ -6,6 +6,7 @@ import warnings
 import os
 import argparse
 from typing import cast
+import ast
 
 from torch import nn
 from tqdm import tqdm
@@ -193,7 +194,7 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     lambda x: generate_binary_output(model_name, device, model, tokenizer,
                                                      this_prompt +
                                                      str(x["unique_activities"]) + "\n"
-                                                     + "Trace:" + str(
+                                                     + "Trace: " + str(
                                                          x[input_att]) + "\nValid:"),
                     axis=1)
             elif input_att == "eventually_follows":
@@ -201,16 +202,16 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                     lambda x: generate_binary_output(model_name, device, model, tokenizer,
                                                      this_prompt +
                                                      str(x["unique_activities"]) + "\n"
-                                                     + "1. Activity:" + str(x[input_att][0]) + "\n"
-                                                     + "2. Activity:" + str(
+                                                     + "1. Activity: " + str(x[input_att][0]) + "\n"
+                                                     + "2. Activity: " + str(
                                                          x[input_att][1]) + "\nValid:"),
                     axis=1)
             elif input_att == "next":
                 val_df["y"] = val_df.progress_apply(
                     lambda x: generate_activity_output(model_name, device, model, tokenizer,
                                                        this_prompt +
-                                                        get_act_list(x["unique_activities"]) + "\n"
-                                                       + "Sequence of activities:" + str(
+                                                       _get_act_list(x["unique_activities"]) + "\n"
+                                                       + "Sequence of activities: " + str(
                                                            x["prefix"]) + "\nAnswer:",
                                                        activities=list(x["unique_activities"])),
                     axis=1)
@@ -271,12 +272,6 @@ def run_evaluation_loop(model_name, device, model, tokenizer, prompt_sample_size
                 # compute average fitness
                 fitness = []
                 for i, row in val_df.iterrows():
-                    if "*" in row["pt"]:
-                        print("loop in gt")
-                        continue
-                    if "*" in row["y"]:
-                        print("loop in pred")
-                        continue
                     true_tree = row["pt"].replace("\n", " ")
                     pred_tree = row["y"].replace("\n", " ")
                     true_str_traces = generate_traces_from_tree(true_tree, row["unique_activities"])
@@ -349,6 +344,8 @@ bnb_config = (BitsAndBytesConfig(
 def get_pair_data(samples_per_class, with_trace=False):
     pair_df = pd.read_csv(EVAL_PATH / "A_SAD.csv")
     pair_df["unique_activities"] = pair_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
+    pair_df["eventually_follows"] = pair_df["eventually_follows"].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
+    
     if not with_trace:
         pair_df = pair_df.drop_duplicates(subset=["revision_id", "model_id", "eventually_follows"])
     # Split
@@ -396,6 +393,7 @@ def get_prefix_data(samples_per_class):
     prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: eval(x) if isinstance(x, str) else x)
     prefix_df["next"] = prefix_df["next"].astype(str)
     prefix_df = prefix_df[~prefix_df["next"].str.contains("END")]
+    prefix_df["prefix"] = prefix_df["prefix"].apply(lambda x: ast.literal_eval(x) if isinstance(x, str) else x)
     prefix_df["prefix"] = prefix_df["prefix"].apply(lambda x: tuple(x))
     prefix_df["unique_activities"] = prefix_df["unique_activities"].apply(lambda x: tuple(x))
     prefix_df = prefix_df.drop_duplicates(subset=["revision_id", "model_id", "prefix", "unique_activities"])
